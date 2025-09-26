@@ -4,9 +4,8 @@ module.exports = defineConfig({
   devServer: {
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://api.rentus",
         changeOrigin: true,
-        secure: false,
       },
     },
   },
