@@ -1,23 +1,49 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
+import { authGuard } from "./guards";
+import LoginView from "../views/LoginView.vue";
+import RegisterView from "../views/RegisterView.vue";
 import HomeView from "../views/HomeView.vue";
-import UsuariosView from "../views/Usuarios.vue";
+import NosotrosView from "../views/NosotrosView.vue";
+import PropertyView from "../views/PropertyView.vue";
 
-const routes: Array<RouteRecordRaw> = [
+const routes = [
   {
     path: "/",
-    name: "home",
+    name: "Home",
     component: HomeView,
   },
   {
-    path: "/usuarios",
-    name: "Usuarios",
-    component: UsuariosView,
+    path: "/login",
+    name: "Login",
+    component: LoginView,
+  },
+  {
+    path: "/register",
+    name: "Register",
+    component: RegisterView,
+  },
+  {
+    path: "/sobre-nosotros",
+    name: "SobreNosotros",
+    component: NosotrosView,
+  },
+  {
+    path: "/propiedades",
+    name: "Properties",
+    component: PropertyView,
   },
 ];
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(process.env.BASE_URL), // Compatible con Vue CLI
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  if (to.meta?.requiresAuth) {
+    return authGuard(to, from, next);
+  }
+  return next();
 });
 
 export default router;
