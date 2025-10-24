@@ -33,19 +33,38 @@
       <div class="hero-gradient-overlay"></div>
     </section>
 
-    <!-- Buscador Mejorado -->
+    <!-- Buscador Mejorado con Autocompletado -->
     <section class="search-section">
       <div class="search-wrapper">
         <p class="search-title">Encuentra tu propiedad ideal</p>
         <div class="search-bar">
-          <div class="search-input">
+          <!-- Input de ubicación con autocompletado -->
+          <div class="search-input location-input">
             <input
               type="text"
               placeholder="¿Dónde quieres vivir?"
               v-model="searchFilters.location"
-              @input="filterProperties"
+              @focus="searchFilters.location.length > 2 ? showSuggestions = true : null"
+              @blur="hideSuggestions"
             />
             <span class="search-icon">🏠</span>
+            
+            <!-- Dropdown de sugerencias -->
+            <div v-if="showSuggestions && locationSuggestions.length > 0" class="suggestions-dropdown">
+              <div
+                v-for="suggestion in locationSuggestions"
+                :key="suggestion.place_id"
+                class="suggestion-item"
+                @mousedown="selectLocationSuggestion(suggestion)"
+              >
+                <span class="suggestion-icon">📍</span>
+                <span class="suggestion-text">{{ suggestion.description }}</span>
+              </div>
+            </div>
+            
+            <div v-if="loadingSuggestions" class="suggestions-loading">
+              🔍 Buscando ubicaciones...
+            </div>
           </div>
 
           <div class="search-input">
@@ -142,7 +161,7 @@
                   </button>
                 </div>
                 <div class="property-status">
-                  <span class="status-badge" :class="property.status">
+                  <span class="status-badge available">
                     {{ getStatusText(property.status) }}
                   </span>
                 </div>
@@ -245,11 +264,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import NavBarComponent from "@/components/NavBarComponent.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
 import { useRouter } from "vue-router";
-import api from "@/services/api";
+import { mapsService } from "@/services/mapsService";
 
 const router = useRouter();
 
@@ -259,7 +278,7 @@ const loadingProperties = ref(false);
 const errorProperties = ref(null);
 
 // Configuración para limitar propiedades
-const PROPERTIES_LIMIT = ref(3);
+const PROPERTIES_LIMIT = ref(4);
 
 // Estados para búsqueda y filtros
 const searchFilters = ref({
@@ -271,6 +290,11 @@ const searchFilters = ref({
 // Estados para estadísticas
 const activeClientsCount = ref(0);
 const propertyCount = ref(0);
+
+// Estados para autocompletado
+const locationSuggestions = ref([]);
+const showSuggestions = ref(false);
+const loadingSuggestions = ref(false);
 
 // Computed para propiedades filtradas
 const filteredProperties = computed(() => {
@@ -312,8 +336,21 @@ const displayedProperties = computed(() => {
   return combined.slice(0, PROPERTIES_LIMIT.value);
 });
 
+// Watcher para autocompletado
+watch(() => searchFilters.value.location, async (newLocation) => {
+  if (newLocation.length > 2) {
+    await fetchLocationSuggestions(newLocation);
+  } else {
+    locationSuggestions.value = [];
+    showSuggestions.value = false;
+  }
+});
+
 // Funciones de API
 async function fetchProperties() {
+  loadingProperties.value = true;
+  errorProperties.value = null;
+
   try {
     // Simulación de datos de propiedades en español
     properties.value = [
@@ -373,6 +410,25 @@ async function fetchProperties() {
         pet_friendly: false,
         views: 89,
         created_at: "2024-01-20"
+      },
+      {
+        id: 4,
+        title: "Finca Campestre con Piscina",
+        description: "Hermosa finca campestre ideal para descanso familiar, cuenta con piscina, jardín amplio y zona de BBQ.",
+        monthly_price: 4200000,
+        address: "Kilómetro 12 Vía a la Costa",
+        city: "Barranquilla",
+        num_bedrooms: 5,
+        num_bathrooms: 4,
+        area_m2: 300,
+        parking_spaces: 4,
+        type: "finca",
+        featured: true,
+        status: "available",
+        new_construction: false,
+        pet_friendly: true,
+        views: 78,
+        created_at: "2024-01-10"
       }
     ];
 
@@ -393,6 +449,36 @@ async function fetchActiveClientsCount() {
   } catch (error) {
     console.error("Error al obtener clientes activos:", error);
   }
+}
+
+// Funciones de autocompletado
+async function fetchLocationSuggestions(input) {
+  if (!input.trim()) return;
+  
+  loadingSuggestions.value = true;
+  try {
+    const suggestions = await mapsService.autocompletePlace(input);
+    locationSuggestions.value = suggestions;
+    showSuggestions.value = suggestions.length > 0;
+  } catch (error) {
+    console.error('Error obteniendo sugerencias:', error);
+    locationSuggestions.value = [];
+  } finally {
+    loadingSuggestions.value = false;
+  }
+}
+
+function selectLocationSuggestion(suggestion) {
+  searchFilters.value.location = suggestion.description;
+  showSuggestions.value = false;
+  locationSuggestions.value = [];
+  console.log('Ubicación seleccionada:', suggestion.description);
+}
+
+function hideSuggestions() {
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 200);
 }
 
 // Funciones de utilidad mejoradas
@@ -492,23 +578,6 @@ function contactAgent(property) {
 
 // Lifecycle hooks
 onMounted(async () => {
-  // Cargar estilos dinámicos
-  const cssFiles = [
-    "/css/home/home.css",
-    "/css/home/propiedades.css",
-    "/css/home/modals.css",
-  ];
-
-  cssFiles.forEach((href) => {
-    if (!document.querySelector(`link[href="${href}"]`)) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = href;
-      link.dataset.dynamic = "true";
-      document.head.appendChild(link);
-    }
-  });
-
   // Cargar datos iniciales
   await fetchProperties();
   fetchActiveClientsCount();
@@ -784,14 +853,6 @@ onMounted(async () => {
   font-size: 0.8rem;
   font-weight: 600;
   backdrop-filter: blur(10px);
-}
-
-.status-badge.reserved {
-  background: rgba(241, 196, 15, 0.95);
-}
-
-.status-badge.sold {
-  background: rgba(231, 76, 60, 0.95);
 }
 
 /* Contenido de la propiedad mejorado */
@@ -1099,6 +1160,68 @@ onMounted(async () => {
 .view-more-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 30px rgba(59, 37, 29, 0.35);
+}
+
+/* Estilos para las sugerencias */
+.location-input {
+  position: relative;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-top: 4px;
+}
+
+.suggestion-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-icon {
+  font-size: 14px;
+}
+
+.suggestion-text {
+  font-size: 14px;
+  color: #333;
+}
+
+.suggestions-loading {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 12px 15px;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  color: #666;
+  font-style: italic;
+  margin-top: 4px;
+  z-index: 1000;
 }
 
 /* Responsive */
