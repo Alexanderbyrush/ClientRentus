@@ -37,6 +37,11 @@ const routes = [
     component: () => import('@/views/ProfileView.vue'),
     meta: { requiresAuth: true }
   },
+    { 
+    path: '/contratos', 
+    component: () => import('@/views/ContractsView.vue'),
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = createRouter({
