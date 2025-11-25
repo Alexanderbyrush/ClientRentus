@@ -6,23 +6,17 @@
     </div>
 
     <nav class="property-nav">
-      <router-link to="/" class="nav-link" active-class="active" exact
-        >Home</router-link
-      >
-      <router-link to="/propiedades" class="nav-link" active-class="active"
-        >Propiedades</router-link
-      >
-      <router-link to="/sobre-nosotros" class="nav-link" active-class="active"
-        >Sobre nosotros</router-link
-      >
+      <router-link to="/" class="nav-link" active-class="active" exact>Home</router-link>
+      <router-link to="/propiedades" class="nav-link" active-class="active">Propiedades</router-link>
+      <router-link to="/sobre-nosotros" class="nav-link" active-class="active">Sobre nosotros</router-link>
     </nav>
 
-    <!-- Si no está logueado, botón Iniciar Sesión -->
+    <!-- Si no está logueado -->
     <button v-if="!isLoggedIn" @click="goLogin" class="login-btn" type="button">
       Iniciar Sesión
     </button>
 
-    <!-- Si está logueado, mostrar saludo con primer nombre -->
+    <!-- Si está logueado -->
     <div
       v-else
       class="user-box"
@@ -30,17 +24,13 @@
       @click="toggleUserDropdown"
       style="cursor: pointer; position: relative"
     >
-      <img
-        v-if="profilePhoto"
-        :src="profilePhoto"
-        alt="Usuario"
-        class="user-img"
-      />
+      <img v-if="profilePhoto" :src="profilePhoto" alt="Usuario" class="user-img" />
       <img v-else src="/img/default.webp" alt="Usuario" class="user-img" />
+
       <div class="user-info">Hola, {{ firstName }}</div>
       <span class="user-arrow">▾</span>
 
-      <!-- Menú desplegable -->
+      <!-- Dropdown -->
       <div
         class="user-dropdown"
         :class="{ show: showDropdown }"
@@ -48,52 +38,41 @@
         @click.stop
       >
         <div @click="goPerfil" class="dropdown-item">
-          <img
-            src="https://img.icons8.com/ios-filled/20/user.png"
-            alt="Perfil"
-          />
+          <img src="https://img.icons8.com/ios-filled/20/user.png" alt="Perfil" />
           Perfil
         </div>
+
         <div @click="openMaintenanceModal" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/maintenance.png" alt="Mantenimiento"/>
+          <img src="https://img.icons8.com/ios-filled/20/maintenance.png" alt="Mantenimiento" />
           Mantenimiento
         </div>
+
         <div @click="goContratos" class="dropdown-item">
-          <img
-            src="https://img.icons8.com/ios-filled/20/agreement.png"
-            alt="Contratos"
-          />
+          <img src="https://img.icons8.com/ios-filled/20/agreement.png" alt="Contratos" />
           Contratos
         </div>
+
         <div @click="goPagos" class="dropdown-item">
-          <img
-            src="https://img.icons8.com/ios-filled/20/bank-cards.png"
-            alt="Pagos"
-          />
+          <img src="https://img.icons8.com/ios-filled/20/bank-cards.png" alt="Pagos" />
           Pagos
         </div>
+
         <div @click="openSolicitudesModal" class="dropdown-item">
-          <img
-            src="https://img.icons8.com/ios-filled/20/document--v1.png"
-            alt="Solicitudes"
-          />
+          <img src="https://img.icons8.com/ios-filled/20/document--v1.png" alt="Solicitudes" />
           Solicitudes
         </div>
-        <div @click="openNotificaciones" class="dropdown-item notification-item">
-          <img
-            src="https://img.icons8.com/ios-filled/20/appointment-reminders--v1.png"
-            alt="Notificaciones"
-          />
+
+        <div @click="openNotificaciones" class="dropdown-item">
+          <img src="https://img.icons8.com/ios-filled/20/appointment-reminders--v1.png" alt="Notificaciones" />
           Notificaciones
           <span class="notif-badge">3</span>
         </div>
+
         <div @click="goAjustes" class="dropdown-item">
-          <img
-            src="https://img.icons8.com/ios-filled/20/settings.png"
-            alt="Ajustes"
-          />
+          <img src="https://img.icons8.com/ios-filled/20/settings.png" alt="Ajustes" />
           Ajustes
         </div>
+
         <div @click="logout" class="dropdown-item logout-item">
           Cerrar sesión
         </div>
@@ -107,18 +86,34 @@
     </transition>
   </router-view>
 
+  <!-- MODAL DE MANTENIMIENTO -->
   <MaintenanceModal 
     :is-visible="showMaintenanceModal"
     @close="showMaintenanceModal = false"
     @submitted="handleMaintenanceSubmitted"
   />
+
+  <!-- ⭐ MODAL DE SOLICITUDES (AGREGA ESTO) ⭐ -->
+  <RequestsView
+    :open="showRequestModal"
+    @close="showRequestModal = false"
+  />
+
+  <NotificationsView
+    :open="showNotificaciontModal"
+    @close="showNotificaciontModal = false"
+  />
+
 </template>
+
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import api from "@/services/api";
 import MaintenanceModal from '@/components/modals/Maintenance/MaintenanceModal.vue'
+import RequestsView from "./modals/ModalRequest/RequestsView.vue";
+import NotificationsView from "./modals/Notifications/NotificationsView.vue";
 
 const router = useRouter();
 const isLoggedIn = ref(false);
@@ -127,6 +122,8 @@ const fullName = ref("Usuario");
 const firstName = ref("Usuario");
 const profilePhoto = ref("");
 const showMaintenanceModal = ref(false)
+const showRequestModal = ref(false)
+const showNotificaciontModal = ref(false)
 
 const openMaintenanceModal = () => {
   showMaintenanceModal.value = true
@@ -138,12 +135,12 @@ const handleMaintenanceSubmitted = (data) => {
 }
 
 const openSolicitudesModal = () => {
-  console.log('Abrir modal de solicitudes')
+  showRequestModal.value = true
   showDropdown.value = false
 }
 
 const openNotificaciones = () => {
-  console.log('Abrir notificaciones')
+  showNotificaciontModal.value = true
   showDropdown.value = false
 }
 

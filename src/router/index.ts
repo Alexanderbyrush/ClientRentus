@@ -32,6 +32,21 @@ const routes = [
     name: "Properties",
     component: PropertyView,
   },
+  {
+  path: "/solicitudes",
+  name: "request",
+  component: () => import("../components/modals/ModalRequest/RequestsView.vue"),
+  },
+  {
+  path: "/ajustes",
+  name: "settings",
+  component: () => import("../views/SettingsView.vue")
+  },
+  {
+  path: "/pagos",
+  name: "pays",
+  component: () => import("../views/PagosView.vue")
+  },
   { 
     path: '/perfil', 
     component: () => import('@/views/ProfileView.vue'),
