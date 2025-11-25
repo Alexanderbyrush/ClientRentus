@@ -2,27 +2,14 @@
   <div class="contracts-page">
     <!-- Fondo con blur -->
     <div class="page-background"></div>
-    
+
     <!-- Header -->
-    <header class="barra">
-      <div class="logo" @click="goHome">
-        <img src="@/assets/img/logo.png" alt="Rentus Logo">
-      </div>
-      <nav class="acciones-barra">
-        <router-link to="/" class="volver" title="Volver">
-          <i class="fas fa-arrow-left"></i>
-        </router-link>
-        <span class="notificaciones" title="Notificaciones" @click="openNotifications">
-          <i class="fas fa-bell"></i>
-          <span class="notification-count" v-if="pendingContracts > 0">{{ pendingContracts }}</span>
-        </span>
-      </nav>
-    </header>
+    <NavBarComponent />
 
     <!-- Contenido Principal -->
     <main class="carousel-container">
       <h2 class="titulo">Mis Contratos</h2>
-      
+
       <!-- Loading State -->
       <div v-if="loading" class="loading-container">
         <div class="loading-spinner"></div>
@@ -35,30 +22,40 @@
           v-for="(contract, index) in contracts"
           :key="contract.id"
           class="card"
-          :class="{ 
+          :class="{
             active: activeIndex === index,
-            'highlight-new': contract.isNew 
+            'highlight-new': contract.isNew,
           }"
           @click="setActiveContract(index)"
         >
           <div class="card-badge" v-if="contract.isNew">Nuevo</div>
-          <img :src="getPropertyImage(contract.propertyImage)" :alt="contract.title">
+          <img
+            :src="getPropertyImage(contract.propertyImage)"
+            :alt="contract.title"
+          />
           <h4>{{ contract.title }}</h4>
           <p class="property-address">{{ contract.propertyAddress }}</p>
-          <p>Estado: 
-            <span class="status" :class="contract.status">
-              {{ getStatusText(contract.status) }} ●
+          <p>
+            Estado:
+            <span :style="{ color: getStatusInfo(contract.status).color }">
+              {{ getStatusInfo(contract.status).text }}
             </span>
           </p>
           <div class="contract-price">
             {{ formatPrice(contract.monthlyPrice) }}/mes
           </div>
           <div class="card-actions">
-            <button class="vista-previa" @click.stop="openContractModal(contract)">
+            <button
+              class="vista-previa"
+              @click.stop="openContractModal(contract)"
+            >
               <i class="fas fa-eye"></i>
               Vista previa
             </button>
-            <button class="download-btn-sm" @click.stop="downloadContract(contract)">
+            <button
+              class="download-btn-sm"
+              @click.stop="downloadContract(contract)"
+            >
               <i class="fas fa-download"></i>
             </button>
           </div>
@@ -67,11 +64,14 @@
 
       <!-- Controles del Carrusel -->
       <div v-if="!loading" class="carousel-controls">
-        <button @click="prevContract" :disabled="activeIndex === 0">
-          ⟨
-        </button>
-        <span class="carousel-counter">{{ activeIndex + 1 }} / {{ contracts.length }}</span>
-        <button @click="nextContract" :disabled="activeIndex === contracts.length - 1">
+        <button @click="prevContract" :disabled="activeIndex === 0">⟨</button>
+        <span class="carousel-counter"
+          >{{ activeIndex + 1 }} / {{ contracts.length }}</span
+        >
+        <button
+          @click="nextContract"
+          :disabled="activeIndex === contracts.length - 1"
+        >
           ⟩
         </button>
       </div>
@@ -79,15 +79,15 @@
       <!-- Estadísticas -->
       <div v-if="!loading" class="contracts-stats">
         <div class="stat-item">
-          <span class="stat-number">{{ activeContracts }}</span>
+          <span class="stat-number">{{ contractStats.active }}</span>
           <span class="stat-label">Activos</span>
         </div>
         <div class="stat-item">
-          <span class="stat-number">{{ totalContracts }}</span>
+          <span class="stat-number">{{ contractStats.total }}</span>
           <span class="stat-label">Total</span>
         </div>
         <div class="stat-item">
-          <span class="stat-number">{{ pendingContracts }}</span>
+          <span class="stat-number">{{ contractStats.pending }}</span>
           <span class="stat-label">Pendientes</span>
         </div>
       </div>
@@ -100,16 +100,16 @@
           <h3>{{ selectedContract?.title }}</h3>
           <span class="close" @click="closeModal">&times;</span>
         </div>
-        
+
         <div v-if="previewLoading" class="preview-loading">
           <div class="loading-spinner"></div>
           <p>Generando vista previa del contrato...</p>
         </div>
-        
+
         <div v-else class="contract-preview">
-          <iframe 
-            v-if="contractPdfUrl" 
-            :src="contractPdfUrl" 
+          <iframe
+            v-if="contractPdfUrl"
+            :src="contractPdfUrl"
             class="pdf-preview"
             frameborder="0"
           ></iframe>
@@ -120,15 +120,19 @@
         </div>
 
         <div class="modal-actions">
-          <button class="btn-secondary" @click="closeModal">
+          <button class="close-btn" @click="closeModal">
             <i class="fas fa-times"></i>
             Cerrar
           </button>
-          <button class="download-btn" @click="downloadContract(selectedContract!)" :disabled="!contractPdfUrl">
+          <button
+            class="download-btn"
+            @click="downloadContract(selectedContract!)"
+            :disabled="!contractPdfUrl"
+          >
             <i class="fas fa-download"></i>
             Descargar PDF
           </button>
-          <button class="btn-primary" @click="shareContract(selectedContract!)">
+          <button class="share-btn" @click="shareContract(selectedContract!)">
             <i class="fas fa-share"></i>
             Compartir
           </button>
@@ -165,194 +169,231 @@
         </div>
       </div>
     </div>
+    <FooterComponent />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { pdfService } from '@/services/pdfService'
+import { ref, watch, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { contractService } from "@/services/contractService";
+import { pdfService } from "@/services/pdfService";
+import NavBarComponent from "@/components/NavBarComponent.vue";
+import FooterComponent from "@/components/FooterComponent.vue";
 
-const router = useRouter()
+const router = useRouter();
 
-// Interfaces TypeScript
-interface Contract {
-  id: number
-  title: string
-  status: 'active' | 'inactive' | 'expired' | 'pending'
-  propertyImage: string
-  propertyAddress: string
-  startDate: string
-  endDate: string
-  monthlyPrice: number
-  deposit: number
-  tenantName: string
-  landlordName: string
-  propertyType: string
-  area: number
-  bedrooms: number
-  bathrooms: number
-  clauses: string[]
-  isNew?: boolean
+// Interfaz de contrato con todos los campos necesarios
+interface ContractCardUI {
+  id: number;
+  title: string;
+  status: string;
+  propertyImage?: string;
+  propertyAddress?: string;
+  startDate?: string;
+  endDate?: string;
+  monthlyPrice?: number;
+  deposit?: number;
+
+  tenantName: string;
+  tenantCC?: string;
+  tenantEmail?: string;
+
+  landlordName: string;
+  landlordCC?: string;
+  landlordEmail?: string;
+
+  propertyType?: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  clauses?: string[];
+  isNew?: boolean;
 }
 
-// Estados reactivos
-const contracts = ref<Contract[]>([])
-const activeIndex = ref(0)
-const showModal = ref(false)
-const selectedContract = ref<Contract | null>(null)
-const contractPdfUrl = ref<string>('')
-const previewLoading = ref(false)
-const loading = ref(true)
+// Estados
+const contracts = ref<ContractCardUI[]>([]);
+const activeIndex = ref(0);
+const showModal = ref(false);
+const selectedContract = ref<ContractCardUI | null>(null);
+const contractPdfUrl = ref<string>("");
+const previewLoading = ref(false);
+const loading = ref(true);
 
-// Computed properties
-const activeContracts = computed(() => 
-  contracts.value.filter(c => c.status === 'active').length
-)
+// Estadísticas
+const contractStats = ref({
+  active: 0,
+  pending: 0,
+  total: 0,
+});
 
-const totalContracts = computed(() => contracts.value.length)
+// Bloquear / desbloquear scroll al abrir/cerrar modal
+watch(showModal, (val) => {
+  document.body.style.overflow = val ? "hidden" : "";
+});
 
-const pendingContracts = computed(() => 
-  contracts.value.filter(c => c.status === 'pending').length
-)
-
-// Métodos
-const goHome = () => {
-  router.push('/')
-}
-
-const openNotifications = () => {
-  console.log('Abrir notificaciones')
-}
-
-const setActiveContract = (index: number) => {
-  activeIndex.value = index
-}
-
-const prevContract = () => {
-  if (activeIndex.value > 0) {
-    activeIndex.value--
+// Función para cargar estadísticas desde la API
+const loadContractStats = async () => {
+  try {
+    const response = await contractService.getContractStats();
+    contractStats.value = response;
+  } catch (error) {
+    console.error("Error cargando estadísticas:", error);
   }
-}
+};
 
-const nextContract = () => {
-  if (activeIndex.value < contracts.value.length - 1) {
-    activeIndex.value++
-  }
-}
+// Métodos de navegación
+const setActiveContract = (index: number) => (activeIndex.value = index);
+const prevContract = () => activeIndex.value > 0 && activeIndex.value--;
+const nextContract = () =>
+  activeIndex.value < contracts.value.length - 1 && activeIndex.value++;
 
-const openContractModal = async (contract: Contract) => {
-  selectedContract.value = contract
-  showModal.value = true
-  previewLoading.value = true
-  contractPdfUrl.value = ''
+// Modal y PDF
+const openContractModal = async (contract: ContractCardUI) => {
+  selectedContract.value = contract;
+  showModal.value = true;
+  previewLoading.value = true;
+  contractPdfUrl.value = "";
 
   try {
-    // Generar PDF profesional del contrato
-    const pdfUrl = await pdfService.generateContract(contract)
-    contractPdfUrl.value = pdfUrl
-  } catch (error) {
-    console.error('Error generando preview:', error)
+    const pdfUrl = await pdfService.generateContract(contract);
+    contractPdfUrl.value = pdfUrl;
   } finally {
-    previewLoading.value = false
+    previewLoading.value = false;
   }
-}
+};
 
 const closeModal = () => {
-  showModal.value = false
-  selectedContract.value = null
-  contractPdfUrl.value = ''
-}
+  showModal.value = false;
+  selectedContract.value = null;
+  contractPdfUrl.value = "";
+};
 
-const downloadContract = async (contract: Contract) => {
+// Descargar y compartir contrato
+const downloadContract = async (contract: ContractCardUI) => {
   try {
-    const pdfUrl = await pdfService.generateContract(contract)
-    
-    const link = document.createElement('a')
-    link.href = pdfUrl
-    link.download = `contrato_${contract.id}.pdf`
-    link.click()
-    
-    console.log('Contrato descargado:', contract.title)
-  } catch (error) {
-    console.error('Error descargando contrato:', error)
-    alert('Error al descargar el contrato. Intenta nuevamente.')
+    const pdfUrl = await pdfService.generateContract(contract);
+    const link = document.createElement("a");
+    link.href = pdfUrl;
+    link.download = `contrato_${contract.id}.pdf`;
+    link.click();
+  } catch {
+    alert("Error al descargar el contrato.");
   }
-}
+};
 
-const shareContract = async (contract: Contract) => {
+const shareContract = async (contract: ContractCardUI) => {
   if (navigator.share) {
-    try {
-      await navigator.share({
-        title: contract.title,
-        text: `Contrato de arrendamiento - ${contract.propertyAddress}`,
-        url: window.location.href
-      })
-    } catch (error) {
-      console.log('Compartir cancelado')
-    }
+    await navigator.share({
+      title: contract.title,
+      text: `Contrato - ${contract.propertyAddress}`,
+      url: window.location.href,
+    });
   } else {
-    // Fallback: copiar al portapapeles
-    navigator.clipboard.writeText(`Contrato: ${contract.title}\nDirección: ${contract.propertyAddress}`)
-    alert('Información del contrato copiada al portapapeles')
+    navigator.clipboard.writeText(
+      `Contrato: ${contract.title}\nDirección: ${contract.propertyAddress}`
+    );
+    alert("Información copiada al portapapeles");
   }
-}
+};
 
-const getPropertyImage = (imagePath: string) => {
-  return imagePath.startsWith('/') ? imagePath : `/img/${imagePath}`
-}
+// Utilidades
+const getPropertyImage = (img?: string) => {
+  if (!img) return "/img/default-property.jpg"; // placeholder
+  // Si empieza con data:image es Base64
+  if (img.startsWith("data:image")) return img;
+  // Si empieza con / es URL relativa
+  if (img.startsWith("/")) return img;
+  // Si no, asumimos que está en la carpeta /img/
+  return `/img/${img}`;
+};
 
-const getStatusText = (status: string) => {
-  const statusMap: { [key: string]: string } = {
-    'active': 'Activo',
-    'inactive': 'Inactivo',
-    'expired': 'Expirado',
-    'pending': 'Pendiente'
-  }
-  return statusMap[status] || 'Desconocido'
-}
 
-const formatDate = (dateString?: string) => {
-  if (!dateString) return 'N/A'
-  return new Date(dateString).toLocaleDateString('es-ES')
-}
+const getStatusInfo = (status: string) => {
+  const map: Record<string, { text: string; color: string }> = {
+    active: { text: "Activo", color: "green" },
+    inactive: { text: "Inactivo", color: "gray" },
+    expired: { text: "Expirado", color: "red" },
+    pending: { text: "Pendiente", color: "orange" },
+    activo: { text: "Activo", color: "green" },
+    inactivo: { text: "Inactivo", color: "gray" },
+    expirado: { text: "Expirado", color: "red" },
+    pendiente: { text: "Pendiente", color: "orange" },
+  };
+  return map[status] ?? { text: "Desconocido", color: "black" };
+};
 
-const formatPrice = (price?: number) => {
-  if (!price) return 'Consultar'
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0
-  }).format(price)
-}
+const formatDate = (date?: string) =>
+  date ? new Date(date).toLocaleDateString("es-ES") : "N/A";
 
-const getContractDuration = (contract: Contract) => {
-  const start = new Date(contract.startDate)
-  const end = new Date(contract.endDate)
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
-  return `${months} meses`
-}
+const formatPrice = (price?: number) =>
+  price
+    ? new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+      }).format(price)
+    : "Consultar";
 
-// Lifecycle
-onMounted(async () => {
+const getContractDuration = (contract: ContractCardUI) => {
+  if (!contract.startDate || !contract.endDate) return "N/A";
+  const start = new Date(contract.startDate);
+  const end = new Date(contract.endDate);
+  const months =
+    (end.getFullYear() - start.getFullYear()) * 12 +
+    (end.getMonth() - start.getMonth());
+  return `${months} meses`;
+};
+
+// Función para cargar contratos reales desde el backend
+const loadContracts = async () => {
   try {
-    contracts.value = await pdfService.getContracts()
+    loading.value = true;
+    const response = await contractService.getContracts();
+
+    contracts.value = response.map((c: any) => ({
+      id: c.id,
+      title: `Contrato ${c.id}`,
+      status: c.status,
+      propertyImage: c.property?.image_url,
+      propertyAddress: c.property?.address,
+      startDate: c.start_date,
+      endDate: c.end_date,
+      monthlyPrice: c.property?.monthly_price,
+      deposit: c.deposit,
+      tenantName: c.tenant?.name ?? "N/A",
+      tenantCC: c.tenant?.id_documento ?? "N/A",
+      tenantEmail: c.tenant?.email ?? "N/A",
+      landlordName: c.landlord?.name ?? "N/A",
+      landlordCC: c.landlord?.id_documento ?? "N/A",
+      landlordEmail: c.landlord?.email ?? "N/A",
+      propertyType: c.property?.title,
+      area: c.property?.area_m2,
+      bedrooms: c.property?.num_bedrooms,
+      bathrooms: c.property?.num_bathrooms,
+      clauses: c.clauses ?? [],
+    }));
   } catch (error) {
-    console.error('Error cargando contratos:', error)
+    console.error("Error cargando contratos:", error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-})
+};
+
+// Montaje del componente
+onMounted(async () => {
+  await Promise.all([loadContracts(), loadContractStats()]);
+});
 </script>
 
 <style scoped>
 /* Mantén todos los estilos anteriores y agrega estos nuevos */
 
-
 .contracts-page {
-  min-height: 100vh;
-  position: relative;
-  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* altura mínima igual a la pantalla */
+  padding-top: 80px; /* para compensar el navbar */
 }
 
 .page-background {
@@ -361,7 +402,8 @@ onMounted(async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://i.pinimg.com/1200x/e2/d2/b7/e2d2b7877ffb88a68d6b72e5ea0bd965.jpg') center center / cover no-repeat;
+  background: url("https://i.pinimg.com/1200x/e2/d2/b7/e2d2b7877ffb88a68d6b72e5ea0bd965.jpg")
+    center center / cover no-repeat;
   filter: blur(8px) brightness(0.7);
   z-index: -1;
 }
@@ -378,7 +420,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   position: relative;
   z-index: 10;
 }
@@ -391,7 +433,8 @@ onMounted(async () => {
   height: 40px;
 }
 
-.acciones-barra a, .acciones-barra span {
+.acciones-barra a,
+.acciones-barra span {
   color: #f0e5db;
   font-size: 20px;
   margin-left: 20px;
@@ -400,7 +443,8 @@ onMounted(async () => {
   text-decoration: none;
 }
 
-.acciones-barra a:hover, .acciones-barra span:hover {
+.acciones-barra a:hover,
+.acciones-barra span:hover {
   transform: scale(1.1);
   color: #da9c5f;
 }
@@ -420,7 +464,7 @@ onMounted(async () => {
   font-size: 2.5rem;
   margin-bottom: 2rem;
   color: #f0e5db;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   font-weight: 600;
 }
 
@@ -437,7 +481,7 @@ onMounted(async () => {
 /* Tarjetas */
 .card {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
   padding: 1.5rem;
   width: 250px;
@@ -445,7 +489,7 @@ onMounted(async () => {
   transition: all 0.5s ease;
   opacity: 0.6;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
 }
 
@@ -468,7 +512,7 @@ onMounted(async () => {
   border-radius: 15px;
   object-fit: cover;
   margin-bottom: 1rem;
-  border: 2px solid rgba(255,255,255,0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .card h4 {
@@ -574,8 +618,12 @@ onMounted(async () => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -588,7 +636,7 @@ onMounted(async () => {
   border-radius: 20px;
   text-align: center;
   color: #f0e5db;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   overflow-y: auto;
   border: 1px solid #da9c5f;
 }
@@ -620,15 +668,41 @@ onMounted(async () => {
   border-radius: 50%;
 }
 
-.close:hover {
-  color: #da9c5f;
-  background: rgba(218, 156, 95, 0.1);
-}
-
 /* Botón de descarga */
 .download-btn {
   padding: 1rem 2rem;
   background: linear-gradient(45deg, #da9c5f, #b8791f);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.share-btn {
+  padding: 1rem 2rem;
+  background: linear-gradient(45deg, #0077ffff, #106dd8ff);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.close-btn {
+  padding: 1rem 2rem;
+  background: linear-gradient(45deg, #d31414ff, #d41717ff);
   color: white;
   border: none;
   border-radius: 10px;
@@ -648,12 +722,24 @@ onMounted(async () => {
   box-shadow: 0 6px 20px rgba(218, 156, 95, 0.4);
 }
 
+.share-btn:hover {
+  background: linear-gradient(45deg, #0077ffff, #1100ffff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(218, 156, 95, 0.4);
+}
+
+.close-btn:hover {
+  background: linear-gradient(45deg, #ff0000ff, #ce1414ff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(218, 156, 95, 0.4);
+}
+
 .contract-details {
   text-align: left;
-  background: rgba(255,255,255,0.05);
-  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem;
   border-radius: 15px;
-  margin-top: 1rem;
+
 }
 
 .contract-details h3 {
@@ -674,21 +760,21 @@ onMounted(async () => {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .card {
     width: 90%;
     max-width: 300px;
   }
-  
+
   .modal-content {
     margin: 1rem;
     padding: 1.5rem;
   }
-  
+
   .titulo {
     font-size: 2rem;
   }
-  
+
   .carousel-controls button {
     width: 50px;
     height: 50px;
@@ -700,15 +786,15 @@ onMounted(async () => {
   .barra {
     padding: 1rem;
   }
-  
+
   .logo img {
     height: 32px;
   }
-  
+
   .titulo {
     font-size: 1.5rem;
   }
-  
+
   .card {
     padding: 1rem;
   }
@@ -731,8 +817,12 @@ onMounted(async () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .card-badge {
@@ -805,7 +895,7 @@ onMounted(async () => {
 
 .stat-item {
   text-align: center;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   padding: 1rem;
   border-radius: 12px;
   min-width: 80px;
@@ -878,7 +968,8 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-.btn-secondary, .btn-primary {
+.btn-secondary,
+.btn-primary {
   flex: 1;
   padding: 0.8rem 1.5rem;
   border: none;
@@ -912,16 +1003,14 @@ onMounted(async () => {
 }
 
 .contract-details {
-  background: rgba(255,255,255,0.05);
-  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem;
   border-radius: 12px;
 }
 
 .contract-details h4 {
   color: #da9c5f;
-  margin-bottom: 1rem;
   border-bottom: 1px solid #da9c5f;
-  padding-bottom: 0.5rem;
 }
 
 .details-grid {
@@ -972,20 +1061,20 @@ onMounted(async () => {
   .modal-actions {
     flex-direction: column;
   }
-  
+
   .details-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .contracts-stats {
     gap: 1rem;
   }
-  
+
   .stat-item {
     min-width: 60px;
     padding: 0.8rem;
   }
-  
+
   .stat-number {
     font-size: 1.5rem;
   }
