@@ -5,6 +5,9 @@ import RegisterView from "../views/RegisterView.vue";
 import HomeView from "../views/HomeView.vue";
 import NosotrosView from "../views/NosotrosView.vue";
 import PropertyView from "../views/PropertyView.vue";
+import PropertyCreate from "../views/PropertyCreate.vue";
+
+
 
 const routes = [
   {
@@ -31,6 +34,11 @@ const routes = [
     path: "/propiedades",
     name: "Properties",
     component: PropertyView,
+  },
+  {
+    path: '/properties/create',
+    name: 'PropertyCreate',
+    component: PropertyCreate,
   },
   {
   path: "/solicitudes",
