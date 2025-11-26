@@ -182,6 +182,7 @@ const goContratos = () => router.push("/contratos");
 const goPagos = () => router.push("/pagos");
 const goAjustes = () => router.push("/ajustes");
 
+
 const toggleUserDropdown = () => {
   showDropdown.value = !showDropdown.value;
 };

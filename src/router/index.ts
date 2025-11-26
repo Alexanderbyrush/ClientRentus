@@ -6,6 +6,7 @@ import HomeView from "../views/HomeView.vue";
 import NosotrosView from "../views/NosotrosView.vue";
 import PropertyView from "../views/PropertyView.vue";
 import PropertyCreate from "../views/PropertyCreate.vue";
+import PropertyEdit from "../views/PropertyEdit.vue";
 
 
 
@@ -40,6 +41,13 @@ const routes = [
     name: 'PropertyCreate',
     component: PropertyCreate,
   },
+  {
+  path: '/properties/edit/:id',
+  name: 'PropertyEdit',
+  component: PropertyEdit,
+  props: true
+},
+
   {
   path: "/solicitudes",
   name: "request",
