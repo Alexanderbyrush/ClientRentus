@@ -1,15 +1,28 @@
 // services/api.ts
 import axios from "axios";
 
-// API de tu backend Laravel
 const api = axios.create({
   baseURL: "http://api.rentus/api",
 });
 
-// API de Google Maps (para autocompletado de ubicaciones)
+// Interceptor: agrega el token automáticamente en todas las solicitudes
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// API de Google Maps
 const googleApi = axios.create({
   baseURL: "https://maps.googleapis.com/maps/api",
-  timeout: 10000 // 10 segundos timeout
+  timeout: 10000,
 });
 
 export { api, googleApi };

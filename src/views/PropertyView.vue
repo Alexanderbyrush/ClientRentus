@@ -15,7 +15,7 @@
           <div class="stat-item">
             <span class="stat-number">{{
               propertyCount.toLocaleString()
-            }}</span>
+              }}</span>
             <span class="stat-label">Propiedades</span>
           </div>
           <div class="stat-item">
@@ -37,16 +37,8 @@
         <p class="search-title">Buscador de propiedades disponibles</p>
         <div class="search-bar">
           <div class="search-input">
-            <input
-              type="text"
-              placeholder="Ubicación"
-              v-model="searchFilters.location"
-              @input="filterProperties"
-            />
-            <img
-              src="https://img.icons8.com/ios-filled/20/marker.png"
-              alt="Ubicación"
-            />
+            <input type="text" placeholder="Ubicación" v-model="searchFilters.location" @input="filterProperties" />
+            <img src="https://img.icons8.com/ios-filled/20/marker.png" alt="Ubicación" />
           </div>
 
           <div class="search-input">
@@ -59,16 +51,9 @@
           </div>
 
           <div class="search-input">
-            <input
-              type="number"
-              placeholder="Precio máximo"
-              v-model="searchFilters.maxPrice"
-              @input="filterProperties"
-            />
-            <img
-              src="https://img.icons8.com/ios-filled/20/money.png"
-              alt="Precio"
-            />
+            <input type="number" placeholder="Precio máximo" v-model="searchFilters.maxPrice"
+              @input="filterProperties" />
+            <img src="https://img.icons8.com/ios-filled/20/money.png" alt="Precio" />
           </div>
 
           <button class="search-btn" @click="filterProperties">Buscar</button>
@@ -81,6 +66,9 @@
       <div class="properties-container">
         <div class="section-header">
           <h2 class="section-title">Propiedades Destacadas</h2>
+          <router-link to="/properties/create" class="btn-create">
+            Crear propiedad
+          </router-link>
         </div>
 
         <!-- Loading state -->
@@ -96,37 +84,21 @@
 
         <!-- Properties grid -->
         <div v-else-if="displayedProperties.length > 0" class="properties-grid">
-          <div
-            v-for="property in displayedProperties"
-            :key="property.id"
-            class="property-card"
-            :class="{ featured: property.featured }"
-            @click="openPropertyModal(property)"
-          >
+          <div v-for="property in displayedProperties" :key="property.id" class="property-card"
+            :class="{ featured: property.featured }" @click="openPropertyModal(property)">
             <div v-if="property.featured" class="property-badge">
               ⭐ Destacada
             </div>
 
             <div class="property-media">
-              <img
-                :src="getPropertyImage(property)"
-                :alt="property.title"
-                :data-original-src="property.image_url"
-                @error="handleImageError($event)"
-                loading="lazy"
-              />
+              <img :src="getPropertyImage(property)" :alt="property.title" :data-original-src="property.image_url"
+                @error="handleImageError($event)" loading="lazy" />
               <div class="property-actions">
-                <button
-                  class="fav-btn"
-                  @click.stop="toggleFavorite(property)"
-                  :class="{ active: property.is_favorite }"
-                >
+                <button class="fav-btn" @click.stop="toggleFavorite(property)"
+                  :class="{ active: property.is_favorite }">
                   <i class="fas fa-heart"></i>
                 </button>
-                <button
-                  class="compare-btn"
-                  @click.stop="addToCompare(property)"
-                >
+                <button class="compare-btn" @click.stop="addToCompare(property)">
                   <i class="fas fa-exchange-alt"></i>
                 </button>
               </div>
@@ -139,12 +111,9 @@
               <div class="price-agent">
                 <span class="property-price">{{
                   formatPrice(property.monthly_price)
-                }}</span>
+                  }}</span>
                 <div v-if="property.agent" class="agent-mini">
-                  <img
-                    :src="property.agent.photo || '/img/default-agent.jpg'"
-                    :alt="property.agent.name"
-                  />
+                  <img :src="property.agent.photo || '/img/default-agent.jpg'" :alt="property.agent.name" />
                 </div>
               </div>
 
@@ -175,10 +144,7 @@
                 <div v-if="property.rating" class="property-rating">
                   <i class="fas fa-star"></i> {{ property.rating }}
                 </div>
-                <button
-                  class="details-btn"
-                  @click.stop="openPropertyModal(property)"
-                >
+                <button class="details-btn" @click.stop="openPropertyModal(property)">
                   Ver detalles <i class="fas fa-arrow-right"></i>
                 </button>
               </div>
@@ -197,57 +163,30 @@
     </section>
 
     <!-- Modal detalle de propiedad -->
-    <div
-      id="property-detail-modal"
-      class="property-detail-modal"
-      v-if="showPropertyModal && selectedProperty"
-      @click.self="closePropertyModal"
-    >
-      <button
-        v-if="filteredProperties.length > 1"
-        id="prev-btn"
-        class="carousel-prev"
-        @click="showPreviousProperty"
-        :disabled="currentPropertyIndex === 0"
-      >
+    <div id="property-detail-modal" class="property-detail-modal" v-if="showPropertyModal && selectedProperty"
+      @click.self="closePropertyModal">
+      <button v-if="filteredProperties.length > 1" id="prev-btn" class="carousel-prev" @click="showPreviousProperty"
+        :disabled="currentPropertyIndex === 0">
         &#10094;
       </button>
 
-      <button
-        v-if="filteredProperties.length > 1"
-        id="next-btn"
-        class="carousel-next"
-        @click="showNextProperty"
-        :disabled="currentPropertyIndex === filteredProperties.length - 1"
-      >
+      <button v-if="filteredProperties.length > 1" id="next-btn" class="carousel-next" @click="showNextProperty"
+        :disabled="currentPropertyIndex === filteredProperties.length - 1">
         &#10095;
       </button>
 
       <div class="property-detail-content">
-        <span class="property-detail-close-btn" @click="closePropertyModal"
-          >&times;</span
-        >
+        <span class="property-detail-close-btn" @click="closePropertyModal">&times;</span>
 
         <div class="property-detail-left">
           <div class="image-container">
-            <img
-              :src="selectedPropertyImages[currentImageIndex]"
-              :alt="selectedProperty.title"
-              @error="handleImageError($event)"
-            />
+            <img :src="selectedPropertyImages[currentImageIndex]" :alt="selectedProperty.title"
+              @error="handleImageError($event)" />
           </div>
-          <div
-            class="image-thumbnails"
-            v-if="selectedPropertyImages.length > 1"
-          >
-            <img
-              v-for="(image, index) in selectedPropertyImages"
-              :key="index"
-              :src="image"
-              :class="{ active: index === currentImageIndex }"
-              @click="currentImageIndex = index"
-              @error="handleImageError($event)"
-            />
+          <div class="image-thumbnails" v-if="selectedPropertyImages.length > 1">
+            <img v-for="(image, index) in selectedPropertyImages" :key="index" :src="image"
+              :class="{ active: index === currentImageIndex }" @click="currentImageIndex = index"
+              @error="handleImageError($event)" />
           </div>
         </div>
 
@@ -275,11 +214,7 @@
             {{ formatPrice(selectedProperty.monthly_price) }}
           </p>
 
-          <button
-            class="property-detail-rent-btn"
-            @click="openRequestModal"
-            :disabled="submittingRequest"
-          >
+          <button class="property-detail-rent-btn" @click="openRequestModal" :disabled="submittingRequest">
             {{ submittingRequest ? "Procesando..." : "Solicitar alquiler" }}
           </button>
         </div>
@@ -287,74 +222,32 @@
     </div>
 
     <!-- Modal solicitud de arriendo -->
-    <div
-      id="rental-request-modal"
-      class="modal"
-      v-if="showRequestModal"
-      @click.self="closeRequestModal"
-    >
+    <div id="rental-request-modal" class="modal" v-if="showRequestModal" @click.self="closeRequestModal">
       <div class="modal-content">
         <span class="close-btn" @click="closeRequestModal">&times;</span>
         <h2>Formulario de Solicitud de Arriendo</h2>
 
         <form @submit.prevent="submitRentalRequest">
           <label for="name">Nombre completo</label>
-          <input
-            type="text"
-            id="name"
-            v-model="rentalRequest.name"
-            placeholder="Tu nombre completo"
-            required
-          />
+          <input type="text" id="name" v-model="rentalRequest.name" placeholder="Tu nombre completo" required />
 
           <label for="phone">Teléfono</label>
-          <input
-            type="tel"
-            id="phone"
-            v-model="rentalRequest.phone"
-            placeholder="Tu número de contacto"
-            required
-          />
+          <input type="tel" id="phone" v-model="rentalRequest.phone" placeholder="Tu número de contacto" required />
 
           <label for="email">Correo electrónico</label>
-          <input
-            type="email"
-            id="email"
-            v-model="rentalRequest.email"
-            placeholder="ejemplo@email.com"
-            required
-          />
+          <input type="email" id="email" v-model="rentalRequest.email" placeholder="ejemplo@email.com" required />
 
           <label for="start-date">Fecha de inicio</label>
-          <input
-            type="date"
-            id="start-date"
-            v-model="rentalRequest.startDate"
-            required
-          />
+          <input type="date" id="start-date" v-model="rentalRequest.startDate" required />
 
           <label for="duration">Duración del contrato (meses)</label>
-          <input
-            type="number"
-            id="duration"
-            v-model="rentalRequest.duration"
-            min="1"
-            required
-          />
+          <input type="number" id="duration" v-model="rentalRequest.duration" min="1" required />
 
           <label for="message">Comentarios adicionales</label>
-          <textarea
-            id="message"
-            v-model="rentalRequest.message"
-            placeholder="Escribe aquí cualquier información adicional..."
-            rows="3"
-          ></textarea>
+          <textarea id="message" v-model="rentalRequest.message"
+            placeholder="Escribe aquí cualquier información adicional..." rows="3"></textarea>
 
-          <button
-            type="submit"
-            class="submit-btn"
-            :disabled="submittingRequest"
-          >
+          <button type="submit" class="submit-btn" :disabled="submittingRequest">
             {{ submittingRequest ? "Enviando..." : "Enviar solicitud" }}
           </button>
         </form>
@@ -362,12 +255,7 @@
     </div>
 
     <!-- Modal confirmación -->
-    <div
-      id="confirmation-modal"
-      class="modal"
-      v-if="showConfirmationModal"
-      @click.self="closeConfirmationModal"
-    >
+    <div id="confirmation-modal" class="modal" v-if="showConfirmationModal" @click.self="closeConfirmationModal">
       <div class="modal-content confirmation">
         <span class="close-btn" @click="closeConfirmationModal">&times;</span>
         <div class="check-icon">✅</div>
@@ -723,8 +611,7 @@ function handleImageError(event) {
     // Solo log en desarrollo para debugging
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        `🖼️ Fallback de imagen aplicado para: ${
-          event.target.alt || "imagen sin nombre"
+        `🖼️ Fallback de imagen aplicado para: ${event.target.alt || "imagen sin nombre"
         }`
       );
     }
