@@ -195,6 +195,7 @@ const goAjustes = () => {
   showDropdown.value = false;
 };
 
+
 const toggleUserDropdown = () => {
   showDropdown.value = !showDropdown.value;
 };

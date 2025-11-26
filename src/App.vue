@@ -1,7 +1,7 @@
 <template>
   <nav
     v-if="
-      !['Login', 'Register', 'Home', 'SobreNosotros', 'Properties'].includes(
+      !['Login', 'Register', 'Home', 'SobreNosotros', 'Propiedades'].includes(
         $route.name
       )
     "

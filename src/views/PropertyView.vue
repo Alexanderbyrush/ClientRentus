@@ -1,1028 +1,611 @@
 <template>
   <div class="container">
+    <!-- Navbar -->
     <section class="property-hero">
       <NavBarComponent />
-
-      <div class="property-hero-content">
-        <section class="hero">
-          <div class="hero-text">
-            <h1>Encuentra tu propiedad ideal</h1>
-            <p>Explora nuestro exclusivo catálogo de viviendas seleccionadas</p>
-          </div>
-        </section>
-
-        <div class="property-hero-stats">
-          <div class="stat-item">
-            <span class="stat-number">{{
-              propertyCount.toLocaleString()
-              }}</span>
-            <span class="stat-label">Propiedades</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">{{ activeClientsCount }}</span>
-            <span class="stat-label">Clientes Activos</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">15</span>
-            <span class="stat-label">Años de experiencia</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="hero-gradient-overlay"></div>
     </section>
 
-    <section class="search-section">
-      <div class="search-wrapper">
-        <p class="search-title">Buscador de propiedades disponibles</p>
-        <div class="search-bar">
-          <div class="search-input">
-            <input type="text" placeholder="Ubicación" v-model="searchFilters.location" @input="filterProperties" />
-            <img src="https://img.icons8.com/ios-filled/20/marker.png" alt="Ubicación" />
-          </div>
+    <h1 class="title-page">Propiedades Disponibles</h1>
 
-          <div class="search-input">
-            <select v-model="searchFilters.type" @change="filterProperties">
-              <option value="">Tipo de propiedad</option>
-              <option value="casa">Casa</option>
-              <option value="apartamento">Apartamento</option>
-              <option value="local">Local</option>
-            </select>
-          </div>
+    <!-- FILTROS -->
+    <div class="filters-box">
+      <div class="filters-grid">
 
-          <div class="search-input">
-            <input type="number" placeholder="Precio máximo" v-model="searchFilters.maxPrice"
-              @input="filterProperties" />
-            <img src="https://img.icons8.com/ios-filled/20/money.png" alt="Precio" />
-          </div>
+        <div class="filter-group">
+          <label>Buscar</label>
+          <input v-model="filters.search" type="text" placeholder="Título, descripción, ciudad..." />
+        </div>
 
-          <button class="search-btn" @click="filterProperties">Buscar</button>
+        <div class="filter-group">
+          <label>Ciudad</label>
+          <input v-model="filters.city" type="text" placeholder="Ej: Medellín" />
+        </div>
+
+        <div class="filter-group">
+          <label>Tipo</label>
+          <select v-model="filters.type">
+            <option value="">Todos</option>
+            <option value="casa">Casa</option>
+            <option value="apartamento">Apartamento</option>
+            <option value="local">Local Comercial</option>
+            <option value="finca">Finca</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Presupuesto Máximo</label>
+          <input v-model.number="filters.maxPrice" type="number" min="0" placeholder="$" />
         </div>
       </div>
-    </section>
 
-    <!-- Sección de Propiedades -->
-    <section class="properties-section">
-      <div class="properties-container">
-        <div class="section-header">
-          <h2 class="section-title">Propiedades Destacadas</h2>
-          <router-link to="/properties/create" class="btn-create">
-            Crear propiedad
-          </router-link>
-        </div>
-
-        <!-- Loading state -->
-        <div v-if="loadingProperties" class="loading-container">
-          <p>Cargando propiedades...</p>
-        </div>
-
-        <!-- Error state -->
-        <div v-else-if="errorProperties" class="error-container">
-          <p>Error al cargar las propiedades: {{ errorProperties }}</p>
-          <button @click="fetchProperties" class="retry-btn">Reintentar</button>
-        </div>
-
-        <!-- Properties grid -->
-        <div v-else-if="displayedProperties.length > 0" class="properties-grid">
-          <div v-for="property in displayedProperties" :key="property.id" class="property-card"
-            :class="{ featured: property.featured }" @click="openPropertyModal(property)">
-            <div v-if="property.featured" class="property-badge">
-              ⭐ Destacada
-            </div>
-
-            <div class="property-media">
-              <img :src="getPropertyImage(property)" :alt="property.title" :data-original-src="property.image_url"
-                @error="handleImageError($event)" loading="lazy" />
-              <div class="property-actions">
-                <button class="fav-btn" @click.stop="toggleFavorite(property)"
-                  :class="{ active: property.is_favorite }">
-                  <i class="fas fa-heart"></i>
-                </button>
-                <button class="compare-btn" @click.stop="addToCompare(property)">
-                  <i class="fas fa-exchange-alt"></i>
-                </button>
-              </div>
-              <button v-if="property.has_tour" class="tour-btn">
-                <i class="fas fa-vr-cardboard"></i> Tour 360°
-              </button>
-            </div>
-
-            <div class="property-details">
-              <div class="price-agent">
-                <span class="property-price">{{
-                  formatPrice(property.monthly_price)
-                  }}</span>
-                <div v-if="property.agent" class="agent-mini">
-                  <img :src="property.agent.photo || '/img/default-agent.jpg'" :alt="property.agent.name" />
-                </div>
-              </div>
-
-              <h3 class="property-title">{{ property.title }}</h3>
-
-              <div class="property-location">
-                <i class="fas fa-map-marker-alt"></i>
-                {{ property.address }}, {{ property.city }}
-              </div>
-
-              <div class="property-features">
-                <span v-if="property.num_bedrooms">
-                  <i class="fas fa-bed"></i> {{ property.num_bedrooms }}
-                </span>
-                <span v-if="property.num_bathrooms">
-                  <i class="fas fa-bath"></i> {{ property.num_bathrooms }}
-                </span>
-                <span v-if="property.area_m2">
-                  <i class="fas fa-ruler-combined"></i> {{ property.area_m2 }}m²
-                </span>
-              </div>
-
-              <div class="property-description">
-                {{ truncateDescription(property.description) }}
-              </div>
-
-              <div class="property-footer">
-                <div v-if="property.rating" class="property-rating">
-                  <i class="fas fa-star"></i> {{ property.rating }}
-                </div>
-                <button class="details-btn" @click.stop="openPropertyModal(property)">
-                  Ver detalles <i class="fas fa-arrow-right"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Empty state -->
-        <div v-else class="empty-state">
-          <p>No se encontraron propiedades que coincidan con tu búsqueda.</p>
-          <button @click="clearFilters" class="clear-filters-btn">
-            Limpiar filtros
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Modal detalle de propiedad -->
-    <div id="property-detail-modal" class="property-detail-modal" v-if="showPropertyModal && selectedProperty"
-      @click.self="closePropertyModal">
-      <button v-if="filteredProperties.length > 1" id="prev-btn" class="carousel-prev" @click="showPreviousProperty"
-        :disabled="currentPropertyIndex === 0">
-        &#10094;
-      </button>
-
-      <button v-if="filteredProperties.length > 1" id="next-btn" class="carousel-next" @click="showNextProperty"
-        :disabled="currentPropertyIndex === filteredProperties.length - 1">
-        &#10095;
-      </button>
-
-      <div class="property-detail-content">
-        <span class="property-detail-close-btn" @click="closePropertyModal">&times;</span>
-
-        <div class="property-detail-left">
-          <div class="image-container">
-            <img :src="selectedPropertyImages[currentImageIndex]" :alt="selectedProperty.title"
-              @error="handleImageError($event)" />
-          </div>
-          <div class="image-thumbnails" v-if="selectedPropertyImages.length > 1">
-            <img v-for="(image, index) in selectedPropertyImages" :key="index" :src="image"
-              :class="{ active: index === currentImageIndex }" @click="currentImageIndex = index"
-              @error="handleImageError($event)" />
-          </div>
-        </div>
-
-        <div class="property-detail-right">
-          <h2>{{ selectedProperty.title }}</h2>
-
-          <ul class="property-detail-features">
-            <li>{{ selectedProperty.description }}</li>
-            <li v-if="selectedProperty.num_bedrooms">
-              🛏️ {{ selectedProperty.num_bedrooms }} Habitaciones
-            </li>
-            <li v-if="selectedProperty.num_bathrooms">
-              🛁 {{ selectedProperty.num_bathrooms }} Baños
-            </li>
-            <li v-if="selectedProperty.area_m2">
-              📐 {{ selectedProperty.area_m2 }}m²
-            </li>
-          </ul>
-
-          <p class="property-detail-location">
-            📍 {{ selectedProperty.address }}, {{ selectedProperty.city }}
-          </p>
-
-          <p class="property-detail-price">
-            {{ formatPrice(selectedProperty.monthly_price) }}
-          </p>
-
-          <button class="property-detail-rent-btn" @click="openRequestModal" :disabled="submittingRequest">
-            {{ submittingRequest ? "Procesando..." : "Solicitar alquiler" }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal solicitud de arriendo -->
-    <div id="rental-request-modal" class="modal" v-if="showRequestModal" @click.self="closeRequestModal">
-      <div class="modal-content">
-        <span class="close-btn" @click="closeRequestModal">&times;</span>
-        <h2>Formulario de Solicitud de Arriendo</h2>
-
-        <form @submit.prevent="submitRentalRequest">
-          <label for="name">Nombre completo</label>
-          <input type="text" id="name" v-model="rentalRequest.name" placeholder="Tu nombre completo" required />
-
-          <label for="phone">Teléfono</label>
-          <input type="tel" id="phone" v-model="rentalRequest.phone" placeholder="Tu número de contacto" required />
-
-          <label for="email">Correo electrónico</label>
-          <input type="email" id="email" v-model="rentalRequest.email" placeholder="ejemplo@email.com" required />
-
-          <label for="start-date">Fecha de inicio</label>
-          <input type="date" id="start-date" v-model="rentalRequest.startDate" required />
-
-          <label for="duration">Duración del contrato (meses)</label>
-          <input type="number" id="duration" v-model="rentalRequest.duration" min="1" required />
-
-          <label for="message">Comentarios adicionales</label>
-          <textarea id="message" v-model="rentalRequest.message"
-            placeholder="Escribe aquí cualquier información adicional..." rows="3"></textarea>
-
-          <button type="submit" class="submit-btn" :disabled="submittingRequest">
-            {{ submittingRequest ? "Enviando..." : "Enviar solicitud" }}
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal confirmación -->
-    <div id="confirmation-modal" class="modal" v-if="showConfirmationModal" @click.self="closeConfirmationModal">
-      <div class="modal-content confirmation">
-        <span class="close-btn" @click="closeConfirmationModal">&times;</span>
-        <div class="check-icon">✅</div>
-        <h2>¡Solicitud enviada!</h2>
-        <p>
-          Tu solicitud ha sido enviada correctamente. El arrendador se pondrá en
-          contacto contigo pronto.
-        </p>
-        <button class="submit-btn" @click="closeConfirmationModal">
-          Volver a propiedades
+      <div class="filters-actions">
+        <button class="btn-primary" @click="applyFilters">
+          Aplicar filtros
         </button>
       </div>
     </div>
-    <FooterComponent />
+    <div class="section-header">
+      <h2 class="section-title">Propiedades Destacadas</h2>
+
+      <router-link to="/properties/create" class="btn-create">
+        Crear propiedad
+      </router-link>
+    </div>
+
+    <div class="contenedor-propiedades section-block">
+      <h2 class="section-title">Propiedades publicadas</h2>
+      <!-- LISTADO -->
+      <div v-if="filteredProperties.length" class="properties-grid">
+
+        <div v-for="p in filteredProperties" :key="p.id" class="property-card">
+
+          <img :src="p.image_url || fallbackImage" class="property-image" @error="onImgError" />
+
+          <div class="property-body">
+
+            <h2 class="property-title">{{ p.title }}</h2>
+
+            <p class="property-description">{{ p.description }}</p>
+
+            <ul class="property-details">
+              <li><strong>Ciudad:</strong> {{ p.city }}</li>
+              <li><strong>Precio:</strong> ${{ p.monthly_price }}</li>
+              <li><strong>Área:</strong> {{ p.area_m2 }} m²</li>
+              <li><strong>Habitaciones:</strong> {{ p.num_bedrooms }}</li>
+              <li><strong>Baños:</strong> {{ p.num_bathrooms }}</li>
+              <li><strong>Estado:</strong> {{ friendlyStatus(p.status) }}</li>
+            </ul>
+
+            <div class="property-actions">
+
+              <!-- SOLO EL DUEÑO VE ESTOS BOTONES -->
+              <router-link v-if="authUser?.id === p.user_id" :to="{ name: 'PropertyEdit', params: { id: p.id } }"
+                class="btn-edit">
+                Editar
+              </router-link>
+
+              <button v-if="authUser?.id === p.user_id" @click="deleteProperty(p.id)" class="btn-delete">
+                Eliminar
+              </button>
+
+
+              <!-- TODOS VEN ESTE -->
+              <button @click="openModal(p)" class="btn-secondary">
+                Ver más
+              </button>
+
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+      <p v-else class="empty-text">
+        No se encontraron propiedades con los filtros aplicados.
+      </p>
+    </div>
+
   </div>
+  <!-- MODAL -->
+  <div v-if="modalOpen" class="modal-backdrop">
+    <div class="modal-box">
+
+      <button class="modal-close" @click="closeModal">×</button>
+
+      <h2 class="modal-title">{{ selectedProperty.title }}</h2>
+
+      <img :src="selectedProperty.image_url || fallbackImage" class="modal-image" @error="onImgError" />
+
+      <div class="modal-details">
+        <p><strong>Descripción:</strong> {{ selectedProperty.description }}</p>
+        <p><strong>Dirección:</strong> {{ selectedProperty.address }}</p>
+        <p><strong>Ciudad:</strong> {{ selectedProperty.city }}</p>
+        <p><strong>Estado:</strong> {{ friendlyStatus(selectedProperty.status) }}</p>
+        <p><strong>Precio mensual:</strong> ${{ selectedProperty.monthly_price }}</p>
+        <p><strong>Área:</strong> {{ selectedProperty.area_m2 }} m²</p>
+        <p><strong>Habitaciones:</strong> {{ selectedProperty.num_bedrooms }}</p>
+        <p><strong>Baños:</strong> {{ selectedProperty.num_bathrooms }}</p>
+
+        <p>
+          <strong>Servicios incluidos:</strong>
+          <span v-if="selectedProperty.included_services?.length">
+            {{ selectedProperty.included_services.join(", ") }}
+          </span>
+          <span v-else>Ninguno</span>
+        </p>
+
+        <p><strong>Fecha publicación:</strong> {{ selectedProperty.publication_date }}</p>
+
+        <p><strong>Latitud:</strong> {{ selectedProperty.lat }}</p>
+        <p><strong>Longitud:</strong> {{ selectedProperty.lng }}</p>
+      </div>
+    </div>
+  </div>
+  <FooterComponent />
 </template>
 
+
+
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import api from "@/services/api";
 import NavBarComponent from "@/components/NavBarComponent.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
-import { useRouter } from "vue-router";
-import api from "@/services/api";
 
-let styleLinks = [];
-
-// Estados existentes
-const activeClientsCount = ref(0);
-let intervalIdClients = null;
-const propertyCount = ref(0);
-const targetCount = ref(0);
-let intervalId = null;
-
-const router = useRouter();
-const isLoggedIn = ref(false);
-const showDropdown = ref(false);
-const fullName = ref("Usuario");
-const firstName = ref("Usuario");
-const profilePhoto = ref("");
-
-// Estados para propiedades
+const authUser = ref({});
 const properties = ref([]);
-const loadingProperties = ref(false);
-const errorProperties = ref(null);
-const selectedProperty = ref(null);
-const currentPropertyIndex = ref(0);
-const currentImageIndex = ref(0);
+const fallbackImage = "https://via.placeholder.com/400x300?text=Sin+Imagen";
 
-// Estados para modales
-const showPropertyModal = ref(false);
-const showRequestModal = ref(false);
-const showConfirmationModal = ref(false);
-
-// Estados para formulario de solicitud
-const submittingRequest = ref(false);
-const rentalRequest = ref({
-  name: "",
-  phone: "",
-  email: "",
-  startDate: "",
-  duration: 1,
-  message: "",
-  propertyId: null,
-});
-
-// Estados para búsqueda y filtros
-const searchFilters = ref({
-  location: "",
+const filters = ref({
+  search: "",
+  city: "",
   type: "",
   maxPrice: null,
 });
 
-// Computed para propiedades filtradas
-const filteredProperties = computed(() => {
-  let filtered = properties.value;
-
-  if (searchFilters.value.location) {
-    filtered = filtered.filter(
-      (property) =>
-        property.address
-          ?.toLowerCase()
-          .includes(searchFilters.value.location.toLowerCase()) ||
-        property.city
-          ?.toLowerCase()
-          .includes(searchFilters.value.location.toLowerCase())
-    );
-  }
-
-  if (searchFilters.value.type) {
-    filtered = filtered.filter(
-      (property) =>
-        property.type?.toLowerCase() === searchFilters.value.type.toLowerCase()
-    );
-  }
-
-  if (searchFilters.value.maxPrice) {
-    filtered = filtered.filter(
-      (property) => property.monthly_price <= searchFilters.value.maxPrice
-    );
-  }
-
-  return filtered;
-});
-
-// Computed para propiedades mostradas en el home (limitadas)
-const displayedProperties = computed(() => {
-  // Priorizar propiedades destacadas primero
-  const featured = filteredProperties.value.filter((p) => p.featured);
-  const regular = filteredProperties.value.filter((p) => !p.featured);
-
-  return [...featured, ...regular];
-});
-
-// Computed para imágenes de la propiedad seleccionada
-const selectedPropertyImages = computed(() => {
-  if (!selectedProperty.value) return [];
-
-  // Usar image_url como imagen principal
-  if (selectedProperty.value.image_url) {
-    return [selectedProperty.value.image_url];
-  }
-
-  // Fallback para múltiples imágenes si las hay
-  if (
-    selectedProperty.value.images &&
-    selectedProperty.value.images.length > 0
-  ) {
-    return selectedProperty.value.images.map((img) =>
-      typeof img === "string" ? img : img.url
-    );
-  }
-
-  return ["/img/property-placeholder.jpg"];
-});
-
-// Funciones de API
-async function fetchUserData() {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      isLoggedIn.value = false;
-      return;
-    }
-    isLoggedIn.value = true;
-
-    const response = await api.get("/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const user = response.data;
-    fullName.value = user.name || "Usuario";
-    firstName.value = fullName.value.split(" ")[0];
-
-    if (firstName.value.length > 10) {
-      firstName.value = firstName.value.slice(0, 10) + "...";
-    }
-
-    profilePhoto.value = user.profile_photo || "";
-    localStorage.setItem("user", JSON.stringify(user));
-  } catch (error) {
-    console.error("Error obteniendo usuario:", error);
-    logout();
-  }
-}
-
-async function fetchProperties() {
-  loadingProperties.value = true;
-  errorProperties.value = null;
-
-  try {
-    const response = await api.get("/properties", {
-      params: {
-        limit: 1000,
-        status: "available",
-      },
-    });
-
-    properties.value = response.data.data || response.data;
-
-    // Precargar imágenes para evitar errores 404 durante el renderizado
-    await preloadPropertyImages();
-
-    if (response.data.meta) {
-      targetCount.value = response.data.meta.total;
-      animateCount(
-        propertyCount.value,
-        response.data.meta.total,
-        propertyCount
-      );
-    }
-  } catch (error) {
-    console.error("Error al obtener propiedades:", error);
-    errorProperties.value =
-      error.response?.data?.message || "Error al cargar las propiedades";
-  } finally {
-    loadingProperties.value = false;
-  }
-}
-
-async function fetchPropertyCount() {
-  try {
-    const res = await api.get("/properties/count");
-    const count = res.data.count || res.data;
-    animateCount(propertyCount.value, count, propertyCount);
-    targetCount.value = count;
-  } catch (error) {
-    console.error("Error al obtener conteo:", error);
-  }
-}
-
-async function fetchActiveClientsCount() {
-  try {
-    const res = await api.get("/users/active/count");
-    const count = res.data.count || res.data;
-    animateCount(activeClientsCount.value, count, activeClientsCount);
-  } catch (error) {
-    console.error("Error al obtener clientes activos:", error);
-  }
-}
-
-// Funciones de utilidad
-function animateCount(start, end, refVar) {
-  if (!refVar || typeof refVar.value === "undefined") return;
-  const step = end > start ? 1 : -1;
-  refVar.value = start;
-  const timer = setInterval(() => {
-    if (refVar.value === end) {
-      clearInterval(timer);
-    } else {
-      refVar.value += step;
-    }
-  }, 30);
-}
-
-function formatPrice(price) {
-  if (!price) return "Precio a consultar";
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-  }).format(price);
-}
-
-function getPropertyImage(property) {
-  // Verificar si ya sabemos que esta propiedad no tiene imagen válida
-  if (property._imageError) {
-    return DEFAULT_PROPERTY_IMAGE;
-  }
-
-  // Validar que la URL de imagen sea válida antes de devolverla
-  const validateImageUrl = (url) => {
-    if (!url || typeof url !== "string") return null;
-
-    // Lista de URLs conocidas que fallan (placeholder URLs que no existen)
-    const knownBadUrls = [
-      "via.placeholder.com",
-      "placeholder.com",
-      "example.com",
-      "picsum.photos",
-      "lorem",
-      "test",
-    ];
-
-    // Verificar si es una URL problemática conocida
-    if (knownBadUrls.some((badUrl) => url.toLowerCase().includes(badUrl))) {
-      // Marcar silenciosamente como error sin logs
-      property._imageError = true;
-      return null;
-    }
-
-    // Verificar que sea una URL válida
-    try {
-      new URL(url);
-      return url;
-    } catch {
-      return null;
-    }
-  };
-
-  // Usar el campo image_url de la migración
-  if (property.image_url) {
-    const validUrl = validateImageUrl(property.image_url);
-    if (validUrl) return validUrl;
-  }
-
-  // Fallbacks por si acaso usan otros nombres
-  if (property.images && property.images.length > 0) {
-    const firstImage = property.images[0];
-    const imageUrl =
-      typeof firstImage === "string" ? firstImage : firstImage.url;
-    const validUrl = validateImageUrl(imageUrl);
-    if (validUrl) return validUrl;
-  }
-
-  if (property.image) {
-    const validUrl = validateImageUrl(property.image);
-    if (validUrl) return validUrl;
-  }
-
-  return DEFAULT_PROPERTY_IMAGE;
-}
-
-async function preloadPropertyImages() {
-  const imagePromises = properties.value.map(async (property) => {
-    const imageUrl = getPropertyImage(property);
-
-    if (imageUrl === "/img/property-placeholder.jpg") {
-      return; // Ya sabemos que no tiene imagen válida
-    }
-
-    try {
-      await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-
-        // Timeout para evitar carga indefinida
-        setTimeout(() => reject(new Error("Timeout de carga")), 3000);
-      });
-    } catch (error) {
-      // Marcar esta propiedad como que tiene error de imagen (silenciosamente)
-      property._imageError = true;
-
-      // NO hacer console.log/warn aquí para evitar spam en consola
-      // La validación ya se hizo en getPropertyImage()
-    }
-  });
-
-  await Promise.allSettled(imagePromises);
-
-  // Solo un log resumen en desarrollo
-  if (process.env.NODE_ENV === "development") {
-    const errorCount = properties.value.filter((p) => p._imageError).length;
-    if (errorCount > 0) {
-      console.info(
-        `📊 ${errorCount} de ${properties.value.length} propiedades usan imagen placeholder`
-      );
-    }
-  }
-}
-
-function handleImageError(event) {
-  // Evitar bucles infinitos
-  if (event.target.src.includes("data:image/svg+xml")) {
-    return; // Ya está usando fallback SVG, no hacer nada más
-  }
-
-  // Marcar que esta imagen falló para evitar logs repetidos
-  if (!event.target.dataset.errorLogged) {
-    event.target.dataset.errorLogged = "true";
-
-    // Solo log en desarrollo para debugging
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        `🖼️ Fallback de imagen aplicado para: ${event.target.alt || "imagen sin nombre"
-        }`
-      );
-    }
-  }
-
-  // Usar la imagen SVG base64 personalizada
-  event.target.src = DEFAULT_PROPERTY_IMAGE;
-}
-
-const DEFAULT_PROPERTY_IMAGE =
-  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y4ZjlmYSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE4IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2VuIG5vIGRpc3BvbmlibGU8L3RleHQ+PC9zdmc+";
-
-function truncateDescription(description, maxLength = 100) {
-  if (!description) return "";
-  return description.length > maxLength
-    ? description.substring(0, maxLength) + "..."
-    : description;
-}
-
-// Funciones de filtrado
-function filterProperties() {
-  // Los filtros se aplican automáticamente a través del computed filteredProperties
-}
-
-function clearFilters() {
-  searchFilters.value = {
-    location: "",
-    type: "",
-    maxPrice: null,
-  };
-}
-
-// Funciones de modal de propiedades
-function openPropertyModal(property) {
-  selectedProperty.value = property;
-  currentPropertyIndex.value = displayedProperties.value.findIndex(
-    (p) => p.id === property.id
-  );
-  currentImageIndex.value = 0;
-  showPropertyModal.value = true;
-  document.body.classList.add("modal-open");
-}
-
-function closePropertyModal() {
-  showPropertyModal.value = false;
-  selectedProperty.value = null;
-  document.body.classList.remove("modal-open");
-}
-
-function showNextProperty() {
-  if (currentPropertyIndex.value < displayedProperties.value.length - 1) {
-    currentPropertyIndex.value++;
-    selectedProperty.value =
-      displayedProperties.value[currentPropertyIndex.value];
-    currentImageIndex.value = 0;
-  }
-}
-
-function showPreviousProperty() {
-  if (currentPropertyIndex.value > 0) {
-    currentPropertyIndex.value--;
-    selectedProperty.value =
-      displayedProperties.value[currentPropertyIndex.value];
-    currentImageIndex.value = 0;
-  }
-}
-
-// Funciones de solicitud de arriendo
-function openRequestModal() {
-  rentalRequest.value.propertyId = selectedProperty.value.id;
-
-  // Pre-llenar datos del usuario si está logueado
-  if (isLoggedIn.value) {
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    rentalRequest.value.name = userData.name || "";
-    rentalRequest.value.email = userData.email || "";
-    rentalRequest.value.phone = userData.phone || "";
-  }
-
-  showPropertyModal.value = false;
-  showRequestModal.value = true;
-}
-
-function closeRequestModal() {
-  showRequestModal.value = false;
-  resetRentalForm();
-}
-
-function resetRentalForm() {
-  rentalRequest.value = {
-    name: "",
-    phone: "",
-    email: "",
-    startDate: "",
-    duration: 1,
-    message: "",
-    propertyId: null,
-  };
-}
-
-async function submitRentalRequest() {
-  submittingRequest.value = true;
-
-  try {
-    const requestData = {
-      property_id: rentalRequest.value.propertyId,
-      name: rentalRequest.value.name,
-      phone: rentalRequest.value.phone,
-      email: rentalRequest.value.email,
-      start_date: rentalRequest.value.startDate,
-      duration: rentalRequest.value.duration,
-      message: rentalRequest.value.message,
-    };
-
-    const headers = {};
-    const token = localStorage.getItem("token");
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    await api.post("/rental-requests", requestData, { headers });
-
-    showRequestModal.value = false;
-    showConfirmationModal.value = true;
-    resetRentalForm();
-  } catch (error) {
-    console.error("Error al enviar solicitud:", error);
-    alert("Error al enviar la solicitud. Por favor intenta nuevamente.");
-  } finally {
-    submittingRequest.value = false;
-  }
-}
-
-function closeConfirmationModal() {
-  showConfirmationModal.value = false;
-}
-
-// Funciones de favoritos y comparación
-async function toggleFavorite(property) {
-  if (!isLoggedIn.value) {
-    alert("Debes iniciar sesión para agregar a favoritos");
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("token");
-    const headers = { Authorization: `Bearer ${token}` };
-
-    if (property.is_favorite) {
-      await api.delete(`/properties/${property.id}/favorite`, { headers });
-      property.is_favorite = false;
-    } else {
-      await api.post(`/properties/${property.id}/favorite`, {}, { headers });
-      property.is_favorite = true;
-    }
-  } catch (error) {
-    console.error("Error al actualizar favorito:", error);
-    alert("Error al actualizar favorito");
-  }
-}
-
-function addToCompare(property) {
-  // Implementar lógica de comparación
-  console.log("Agregar a comparar:", property.title);
-}
-
-const logout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  isLoggedIn.value = false;
-  showDropdown.value = false;
-  router.push("/login");
+const modalOpen = ref(false);
+const selectedProperty = ref({});
+
+const openModal = (property) => {
+  selectedProperty.value = { ...property };
+  modalOpen.value = true;
+  document.body.classList.add("modal-open"); // Bloquea scroll
 };
 
-// Event handlers
-function handleClickOutsideDropdown(event) {
-  const userMenu = document.getElementById("userToggle");
-  const dropdown = document.getElementById("userDropdown");
+const closeModal = () => {
+  modalOpen.value = false;
+  selectedProperty.value = {};
+  document.body.classList.remove("modal-open"); // Restaura scroll
+};
 
-  if (!userMenu || !dropdown) return;
 
-  if (
-    !userMenu.contains(event.target) &&
-    !dropdown.contains(event.target) &&
-    showDropdown.value
-  ) {
-    showDropdown.value = false;
+// CARGAR PROPIEDADES
+const loadProperties = async () => {
+  try {
+    const { data } = await api.get("/properties");
+    properties.value = data;
+  } catch (err) {
+    console.error("Error cargando propiedades", err);
   }
-}
+};
 
-// Lifecycle hooks
-onMounted(async () => {
-  await fetchUserData();
+onMounted(() => loadProperties());
 
-  const cssFiles = [
-    "/css/home/home.css",
-    "/css/home/propiedades.css",
-    "/css/home/modals.css",
-  ];
+// MANEJO DE ERROR EN IMAGEN
+const onImgError = (event) => {
+  event.target.src = fallbackImage;
+};
 
-  styleLinks = cssFiles.map((href) => {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    document.head.appendChild(link);
-    return link;
+// MAPEAR STATUS A TEXTO
+const friendlyStatus = (s) =>
+({
+  available: "Disponible",
+  rented: "Rentada",
+  maintenance: "En mantenimiento",
+}[s] || s);
+
+// DEDUCIR TIPO DE PROPIEDAD DESDE EL TÍTULO
+const detectType = (title) => {
+  const t = title.toLowerCase();
+  if (t.includes("casa")) return "casa";
+  if (t.includes("apartamento") || t.includes("apto")) return "apartamento";
+  if (t.includes("local")) return "local";
+  if (t.includes("finca")) return "finca";
+  return "";
+};
+
+// FILTRO LOCAL
+const filteredProperties = computed(() => {
+  return properties.value.filter((p) => {
+    const typeFromTitle = detectType(p.title);
+
+    const matchSearch =
+      !filters.value.search ||
+      p.title.toLowerCase().includes(filters.value.search.toLowerCase()) ||
+      p.description.toLowerCase().includes(filters.value.search.toLowerCase()) ||
+      p.city.toLowerCase().includes(filters.value.search.toLowerCase());
+
+    const matchCity =
+      !filters.value.city ||
+      p.city.toLowerCase().includes(filters.value.city.toLowerCase());
+
+    const matchType =
+      !filters.value.type || filters.value.type === typeFromTitle;
+
+    const rawMax = filters.value.maxPrice;
+
+    const matchPrice =
+      !rawMax || Number(p.monthly_price) <= rawMax;
+
+
+
+
+    return matchSearch && matchCity && matchType && matchPrice;
   });
-
-  // Cargar datos iniciales
-  await fetchProperties();
-  fetchPropertyCount();
-  fetchActiveClientsCount();
-
-  // Configurar intervalos para actualización en tiempo real
-  intervalId = setInterval(fetchPropertyCount, 60000); // Cada minuto
-  intervalIdClients = setInterval(fetchActiveClientsCount, 60000);
-
-  // Event listeners
-  document.addEventListener("click", handleClickOutsideDropdown);
 });
 
-onBeforeUnmount(() => {
-  styleLinks.forEach((link) => link.parentNode?.removeChild(link));
+// BOTÓN FILTROS
+const applyFilters = () => {
+  // Solo reactiva el computed
+};
 
-  if (intervalId) clearInterval(intervalId);
-  if (intervalIdClients) clearInterval(intervalIdClients);
+// ELIMINAR PROPIEDAD
+const deleteProperty = async (id) => {
+  if (!confirm("¿Eliminar esta propiedad permanentemente?")) return;
 
-  document.removeEventListener("click", handleClickOutsideDropdown);
-});
+  try {
+    await api.delete(`/properties/${id}`);
+    properties.value = properties.value.filter((p) => p.id !== id);
+    alert("Propiedad eliminada correctamente");
+  } catch (error) {
+    console.error("Error eliminando propiedad:", error);
+    alert("Error al eliminar la propiedad");
+  }
+};
 </script>
-
 <style scoped>
-.stat-number {
-  font-size: 2rem;
-  font-weight: bold;
-  transition: all 0.2s ease;
+/* --- Bloqueo de scroll cuando el modal está abierto --- */
+:global(body.modal-open) {
+  overflow: hidden;
+  height: 100vh;
 }
 
-/* Estilos para la sección de propiedades */
-.properties-section {
-  padding: 60px 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-}
-
-.properties-container {
-  max-width: 1200px;
+/* --- Base y Jerarquía tipográfica profesional --- */
+.container {
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 2rem 1rem;
+  padding-top: 100px;
+  font-family: Inter, system-ui, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
 }
 
+h1.title-page {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-title);
+  border-bottom: 3px solid var(--color-border-accent);
+  padding-bottom: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+/* --- Secciones con mejor separación y limpieza visual --- */
+.section-block {
+  border-left: 6px solid var(--color-border-accent);
+  border-radius: 14px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+  background: var(--color-card);
+  box-shadow: var(--shadow-soft);
+}
+
+/* --- Filtros más profesionales (compactos, alineados, exactos) --- */
+.filters-box {
+  background: var(--color-card);
+  padding: 1.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(109, 76, 65, 0.18);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 2.5rem;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.2rem;
+}
+
+.filter-group label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-title);
+  margin-bottom: 5px;
+  display: block;
+}
+
+/* Inputs más corporativos */
+.filter-group input,
+.filter-group select {
+  background: #f4e8e1;
+  border: 1.5px solid rgba(93, 64, 55, 0.35);
+  border-radius: 10px;
+  padding: 0.65rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text);
+  width: 100%;
+  transition: 0.18s ease-in-out;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(109, 76, 65, 0.18);
+}
+
+/* Botón aplicar filtros */
+.btn-primary {
+  background: var(--color-primary);
+  color: #a42222;
+  padding: 0.7rem 1.6rem;
+  border-radius: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+}
+
+/* --- Header de secciones mejor alineado --- */
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.section-title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #2c3e50;
-  margin: 0;
-}
-
-.section-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.limit-selector {
-  padding: 0.5rem 1rem;
-  border: 2px solid #ddd;
+/* Botón crear propiedad con look más enterprise */
+.btn-create,
+.btn-create.router-link-active {
+  background: var(--color-success);
+  background-color: rgb(79, 32, 0);
+  color: rgb(255, 255, 255);
+  padding: 10px 18px;
   border-radius: 8px;
-  font-size: 1rem;
-  background: white;
-  cursor: pointer;
-  transition: border-color 0.3s ease;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: inline-block;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
 }
 
-.limit-selector:focus {
-  outline: none;
-  border-color: #3498db;
+.btn-create:hover {
+  background: var(--color-success-hover);
+  transform: translateY(-2px);
 }
 
+/* --- Grid de cards limpio y profesional --- */
 .properties-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
-  margin-bottom: 3rem;
 }
 
 .property-card {
-  background: white;
-  border-radius: 15px;
+  background: var(--color-card);
+  border: 1px solid rgba(93, 64, 55, 0.22);
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
-  position: relative;
+  box-shadow: 0 4px 12px rgba(93, 64, 55, 0.1);
+  transition: 0.25s;
 }
 
 .property-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(93, 64, 55, 0.18);
 }
 
-.property-card.featured {
-  border: 2px solid #f39c12;
+/* --- Imagen con banda inferior tipo portal inmobiliario premium --- */
+.property-image {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  border-bottom: 4px solid var(--color-border-accent);
 }
 
-.property-badge {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  background: linear-gradient(45deg, #f39c12, #e67e22);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  z-index: 10;
+/* --- Contenido de card con mayor legibilidad --- */
+.property-body {
+  padding: 1.4rem;
 }
 
-.view-more-section {
-  text-align: center;
-  padding: 2rem 0;
-  border-top: 1px solid #ddd;
+.property-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--color-title);
+  margin-bottom: 0.3rem;
 }
 
-.properties-count {
-  color: #666;
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-}
-
-.view-more-btn {
-  background: linear-gradient(45deg, #ded5c4, #bdb5a6);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.view-more-btn:hover {
-  background: linear-gradient(45deg, #3b251d, #2e1d17);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-}
-
-.loading-container,
-.error-container,
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-}
-
-.loading-container p {
-  font-size: 1.2rem;
-  color: #666;
-}
-
-.error-container p {
-  color: #e74c3c;
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-}
-
-.retry-btn,
-.clear-filters-btn {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
+.property-description {
   font-size: 1rem;
-  transition: background-color 0.3s ease;
+  line-height: 1.4;
+  opacity: 0.85;
+  margin-bottom: 1rem;
 }
 
-.retry-btn:hover,
-.clear-filters-btn:hover {
-  background: #2980b9;
+.property-details {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.95rem;
 }
 
-@media (max-width: 768px) {
-  .section-header {
-    flex-direction: column;
-    align-items: stretch;
+.property-details li {
+  margin-bottom: 4px;
+  opacity: 0.9;
+}
+
+/* --- Botones de actions organizados y empresariales --- */
+.property-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+
+.btn-edit,
+.btn-delete,
+.btn-secondary {
+  padding: 0.55rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+  border: none;
+}
+
+.btn-edit {
+  background: var(--color-primary);
+  background-color: rgba(210, 227, 57, 0.484);
+  color: rgb(0, 0, 0);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+
+.btn-edit:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-delete {
+  background: var(--color-danger);
+  background-color: rgba(242, 17, 17, 0.811);
+  color: rgb(6, 6, 6);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-delete:hover {
+  background: var(--color-danger-hover);
+}
+
+.btn-secondary {
+  background: var(--color-secondary);
+  background-color: rgba(11, 122, 165, 0.484);
+  color: rgb(0, 0, 0);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary:hover {
+  background: var(--color-secondary-hover);
+}
+
+/* --- Modal enterprise (centrado, jerarquía clara, scroll bloqueado, UI premium) --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  padding: 1.5rem;
+}
+
+.modal-box {
+  background: #eedadac2;
+  /* Se mantiene consistente con cards */
+  border: 3px solid var(--color-border-accent);
+  border-radius: 14px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 86vh;
+  padding: 2rem;
+  box-shadow: var(--shadow-strong);
+  position: relative;
+  animation: modalFade 0.28s ease;
+  overflow-y: auto;
+  /* Scroll interno controlado */
+}
+
+@keyframes modalFade {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
   }
 
-  .section-title {
-    font-size: 2rem;
-    text-align: center;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  .section-controls {
-    justify-content: center;
-  }
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: rgb(255, 0, 0);
+  opacity: 0.7;
+  cursor: pointer;
+}
 
-  .properties-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
+.modal-close:hover {
+  opacity: 1;
+}
+
+.modal-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--color-title);
+  border-bottom: 3px solid rgba(212, 44, 44, 0.28);
+  padding-bottom: 0.4rem;
+  margin-bottom: 1.2rem;
+}
+
+.modal-image {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border-radius: 8px;
+  border-bottom: 4px solid var(--color-border-accent);
+  margin-bottom: 1.2rem;
+}
+
+.modal-details p {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.92;
 }
 </style>

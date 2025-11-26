@@ -2,6 +2,14 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import store from "./store";
+
+
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-createApp(App).use(store).use(router).mount("#app");
+const app = createApp(App);
+
+app.use(store);
+app.use(router);
+
+// Solo montar cuando los plugins ya estén registrados
+app.mount("#app");
