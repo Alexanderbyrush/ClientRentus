@@ -93,7 +93,7 @@
     @submitted="handleMaintenanceSubmitted"
   />
 
-  <!-- ⭐ MODAL DE SOLICITUDES (AGREGA ESTO) ⭐ -->
+  <!-- MODAL DE SOLICITUDES -->
   <RequestsView
     :open="showRequestModal"
     @close="showRequestModal = false"
@@ -106,7 +106,6 @@
 
 </template>
 
-
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
@@ -114,6 +113,7 @@ import api from "@/services/api";
 import MaintenanceModal from '@/components/modals/Maintenance/MaintenanceModal.vue'
 import RequestsView from "./modals/ModalRequest/RequestsView.vue";
 import NotificationsView from "./modals/Notifications/NotificationsView.vue";
+import { eventBus, EVENTS } from '@/services/eventBus'; // ⭐ Importar EventBus
 
 const router = useRouter();
 const isLoggedIn = ref(false);
@@ -127,7 +127,7 @@ const showNotificaciontModal = ref(false)
 
 const openMaintenanceModal = () => {
   showMaintenanceModal.value = true
-  showDropdown.value = false // Cerrar el dropdown
+  showDropdown.value = false
 }
 
 const handleMaintenanceSubmitted = (data) => {
@@ -166,7 +166,8 @@ async function fetchUserData() {
       firstName.value = firstName.value.slice(0, 10) + "...";
     }
 
-    profilePhoto.value = user.profile_photo || "";
+    // ⭐ Cambiar de profile_photo a photo
+    profilePhoto.value = user.photo || "";
     localStorage.setItem("user", JSON.stringify(user));
   } catch (error) {
     console.error("Error obteniendo usuario:", error);
@@ -174,13 +175,25 @@ async function fetchUserData() {
   }
 }
 
-// Funciones de navegación existentes
+// Funciones de navegación
 const goHome = () => router.push("/");
 const goLogin = () => router.push("/login");
-const goPerfil = () => router.push('/perfil');
-const goContratos = () => router.push("/contratos");
-const goPagos = () => router.push("/pagos");
-const goAjustes = () => router.push("/ajustes");
+const goPerfil = () => {
+  router.push('/perfil');
+  showDropdown.value = false;
+};
+const goContratos = () => {
+  router.push("/contratos");
+  showDropdown.value = false;
+};
+const goPagos = () => {
+  router.push("/pagos");
+  showDropdown.value = false;
+};
+const goAjustes = () => {
+  router.push("/ajustes");
+  showDropdown.value = false;
+};
 
 const toggleUserDropdown = () => {
   showDropdown.value = !showDropdown.value;
@@ -210,14 +223,30 @@ function handleClickOutsideDropdown(event) {
   }
 }
 
+// ⭐ Función para actualizar la foto desde el EventBus
+const handlePhotoUpdate = (newPhoto) => {
+  profilePhoto.value = newPhoto;
+  
+  // Actualizar también en localStorage
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  user.photo = newPhoto;
+  localStorage.setItem("user", JSON.stringify(user));
+};
+
 // Lifecycle hooks
 onMounted(async () => {
   await fetchUserData();
   document.addEventListener("click", handleClickOutsideDropdown);
+  
+  // ⭐ Escuchar cambios en la foto de perfil
+  eventBus.on(EVENTS.PROFILE_PHOTO_UPDATED, handlePhotoUpdate);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutsideDropdown);
+  
+  // ⭐ Limpiar listener del EventBus
+  eventBus.off(EVENTS.PROFILE_PHOTO_UPDATED, handlePhotoUpdate);
 });
 </script>
 
