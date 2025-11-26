@@ -13,8 +13,17 @@ interface ContractData {
   endDate: string
   monthlyPrice: number
   deposit: number
+
+  // Arrendatario
   tenantName: string
+  tenantCC: string
+  tenantEmail: string
+
+  // Arrendador
   landlordName: string
+  landlordCC: string
+  landlordEmail: string
+
   propertyType: string
   area: number
   bedrooms: number
@@ -71,91 +80,7 @@ export const pdfService = {
     }
   },
 
-  // Obtener lista de contratos desde API simulada
-  getContracts: async (): Promise<ContractData[]> => {
-    try {
-      // Simulamos una API response
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const contracts: ContractData[] = [
-        {
-          id: 1,
-          title: 'Contrato N° 0003',
-          status: 'active',
-          propertyImage: '/img/casa5.jpg',
-          propertyAddress: 'Carrera 85 #45-120, El Poblado, Medellín',
-          startDate: '2024-01-01',
-          endDate: '2024-12-31',
-          monthlyPrice: 2500000,
-          deposit: 5000000,
-          tenantName: 'María González',
-          landlordName: 'Inversiones RentUs SAS',
-          propertyType: 'Apartamento',
-          area: 95,
-          bedrooms: 3,
-          bathrooms: 2,
-          clauses: [
-            'Duración del contrato: 12 meses',
-            'Depósito de garantía: 2 meses de renta',
-            'Pago mensual antes del día 5',
-            'Mantenimiento a cargo del arrendador',
-            'Servicios públicos a cargo del arrendatario'
-          ]
-        },
-        {
-          id: 2,
-          title: 'Contrato N° 0002',
-          status: 'inactive',
-          propertyImage: '/img/casa2.jpg',
-          propertyAddress: 'Calle 10 #25-80, Chapinero, Bogotá',
-          startDate: '2023-06-01',
-          endDate: '2024-05-31',
-          monthlyPrice: 1800000,
-          deposit: 3600000,
-          tenantName: 'Carlos Rodríguez',
-          landlordName: 'Inversiones RentUs SAS',
-          propertyType: 'Apartamento',
-          area: 75,
-          bedrooms: 2,
-          bathrooms: 1,
-          clauses: [
-            'Duración del contrato: 12 meses',
-            'Depósito de garantía: 2 meses de renta',
-            'Pago mensual antes del día 5',
-            'Mantenimiento a cargo del arrendador'
-          ]
-        },
-        {
-          id: 3,
-          title: 'Contrato N° 0001',
-          status: 'inactive',
-          propertyImage: '/img/casa4.jpg',
-          propertyAddress: 'Avenida Principal #100-50, San Fernando, Cali',
-          startDate: '2023-03-01',
-          endDate: '2024-02-28',
-          monthlyPrice: 1200000,
-          deposit: 2400000,
-          tenantName: 'Ana Martínez',
-          landlordName: 'Inversiones RentUs SAS',
-          propertyType: 'Local Comercial',
-          area: 65,
-          bedrooms: 0,
-          bathrooms: 1,
-          clauses: [
-            'Duración del contrato: 12 meses',
-            'Depósito de garantía: 2 meses de renta',
-            'Uso exclusivo comercial',
-            'Horario de atención: 8:00 AM - 8:00 PM'
-          ]
-        }
-      ]
-
-      return contracts
-    } catch (error) {
-      console.error('Error obteniendo contratos:', error)
-      return []
-    }
-  }
+  // Aquí puedes agregar getContracts si quieres simular API local
 }
 
 // Función para generar HTML profesional del contrato
@@ -191,58 +116,16 @@ function generateContractHTML(contract: ContractData): string {
           padding-bottom: 20px;
           margin-bottom: 30px;
         }
-        .header h1 {
-          color: #2e1d17;
-          margin: 0;
-          font-size: 24px;
-        }
-        .parties {
-          display: flex;
-          justify-content: space-between;
-          margin: 30px 0;
-        }
-        .party {
-          flex: 1;
-          padding: 15px;
-          border: 1px solid #ddd;
-          margin: 0 10px;
-        }
-        .contract-details {
-          background: #f9f9f9;
-          padding: 20px;
-          border-radius: 8px;
-          margin: 20px 0;
-        }
-        .clauses {
-          margin: 30px 0;
-        }
-        .clause {
-          margin: 15px 0;
-          padding-left: 20px;
-        }
-        .signatures {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 60px;
-        }
-        .signature-line {
-          border-top: 1px solid #333;
-          width: 200px;
-          text-align: center;
-          padding-top: 5px;
-        }
-        .highlight {
-          background: #fff3cd;
-          padding: 10px;
-          border-left: 4px solid #ffc107;
-          margin: 10px 0;
-        }
-        .footer {
-          text-align: center;
-          margin-top: 40px;
-          font-size: 12px;
-          color: #666;
-        }
+        .header h1 { color: #2e1d17; margin: 0; font-size: 24px; }
+        .parties { display: flex; justify-content: space-between; margin: 30px 0; }
+        .party { flex: 1; padding: 15px; border: 1px solid #ddd; margin: 0 10px; }
+        .contract-details { background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .clauses { margin: 30px 0; }
+        .clause { margin: 15px 0; padding-left: 20px; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
+        .signature-line { border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 5px; }
+        .highlight { background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 10px 0; }
+        .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
       </style>
     </head>
     <body>
@@ -255,15 +138,15 @@ function generateContractHTML(contract: ContractData): string {
         <div class="party">
           <h3>ARRENDADOR</h3>
           <p><strong>Nombre:</strong> ${contract.landlordName}</p>
-          <p><strong>NIT:</strong> 901.234.567-8</p>
-          <p><strong>Dirección:</strong> Calle 123 #45-67, Bogotá</p>
+          <p><strong>CC:</strong> ${contract.landlordCC}</p>
+          <p><strong>Email:</strong> ${contract.landlordEmail}</p>
         </div>
         
         <div class="party">
           <h3>ARRENDATARIO</h3>
           <p><strong>Nombre:</strong> ${contract.tenantName}</p>
-          <p><strong>CC:</strong> 1.234.567.890</p>
-          <p><strong>Email:</strong> ${contract.tenantName.toLowerCase().replace(' ', '.')}@email.com</p>
+          <p><strong>CC:</strong> ${contract.tenantCC}</p>
+          <p><strong>Email:</strong> ${contract.tenantEmail}</p>
         </div>
       </div>
 
