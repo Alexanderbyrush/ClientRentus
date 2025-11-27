@@ -6,9 +6,9 @@
     <!-- Header -->
     <NavBarComponent />
 
-    <!-- Contenido Principal -->
-    <main class="carousel-container">
-      <h2 class="titulo">Mis Contratos</h2>
+      <!-- Contenido Principal -->
+        <main class="carousel-container">
+        <h2 class="titulo">Mis Contratos</h2>
 
       <!-- Loading State -->
       <div v-if="loading" class="loading-container">

@@ -3,7 +3,7 @@
     <section class="property-hero">
       <NavBarComponent />
 
-      <div class="property-hero-content">
+       <div class="property-hero-content">
         <section class="hero">
           <div class="hero-text">
             <h1>El hogar ideal existe, y te ayudamos a encontrarlo</h1>
