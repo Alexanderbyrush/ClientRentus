@@ -19,7 +19,6 @@
             <div class="avatar-wrapper" @click="triggerFileInput">
               <img :src="profileData.photo || '/img/default.webp'" @error="handleImageError" />
 
-
               <div class="avatar-overlay">
                 <i class="fas fa-camera"></i>
                 <span>Cambiar foto</span>
@@ -80,7 +79,6 @@
         </div>
       </div>
 
-
       <!-- Contact Info Card -->
       <div class="info-cards-grid">
         <div class="info-card">
@@ -113,10 +111,9 @@
             <span class="info-value">{{ formatDate(profileData.created_at) }}</span>
           </div>
         </div>
-
       </div>
 
-      <!-- Properties Section -->
+      <!-- Properties Section - MEJORADA -->
       <div class="properties-section">
         <div class="section-header">
           <h2>Mis Propiedades</h2>
@@ -126,31 +123,78 @@
         </div>
 
         <div class="properties-grid" v-if="userProperties.length > 0">
-          <div v-for="property in userProperties" :key="property.id" class="property-card"
-            @click="viewPropertyDetails(property.id)">
-            <div class="property-image">
-              <img :src="property.image || defaultPropertyImage" :alt="property.title">
-              <div class="property-badge">{{ property.status }}</div>
+          <div v-for="property in userProperties" :key="property.id" class="property-card">
+            <!-- Badge de estado -->
+            <div class="property-badge">
+              {{ friendlyStatus(property.status) }}
             </div>
 
-            <div class="property-details">
-              <h3>{{ property.title }}</h3>
-              <p class="property-price">{{ formatPrice(property.price) }}</p>
-              <p class="property-location">
-                <i class="fas fa-map-marker-alt"></i> {{ property.location }}
-              </p>
+            <!-- Imagen de la propiedad -->
+            <div class="property-image-container">
+              <img :src="property.image_url || defaultPropertyImage" :alt="property.title" class="property-image" @error="handlePropertyImageError" />
+              <div class="property-overlay">
+                <div class="property-actions">
+                  <!-- Botones de editar y eliminar -->
+                  <router-link 
+                    :to="{ name: 'PropertyEdit', params: { id: property.id } }"
+                    class="action-btn edit-btn"
+                    title="Editar propiedad"
+                  >
+                    ✏️
+                  </router-link>
+                  <button 
+                    @click.stop="deleteProperty(property.id)" 
+                    class="action-btn delete-btn"
+                    title="Eliminar propiedad"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenido de la propiedad -->
+            <div class="property-content">
+              <div class="property-header">
+                <h3 class="property-title">{{ property.title }}</h3>
+                <div class="property-price">
+                  ${{ property.monthly_price?.toLocaleString() }}
+                  <span class="price-period">/mes</span>
+                </div>
+              </div>
+
+              <div class="property-location">
+                📍 {{ property.city || 'Ubicación no especificada' }}
+              </div>
 
               <div class="property-features">
-                <span><i class="fas fa-bed"></i> {{ property.bedrooms }}</span>
-                <span><i class="fas fa-bath"></i> {{ property.bathrooms }}</span>
-                <span><i class="fas fa-ruler-combined"></i> {{ property.area }}m²</span>
+                <div class="feature-item">
+                  <span class="feature-icon">📐</span>
+                  <span class="feature-text">{{ property.area_m2 || 'N/A' }} m²</span>
+                </div>
+                <div class="feature-item" v-if="property.num_bedrooms">
+                  <span class="feature-icon">🛏</span>
+                  <span class="feature-text">{{ property.num_bedrooms }} Habitaciones</span>
+                </div>
+                <div class="feature-item" v-if="property.num_bathrooms">
+                  <span class="feature-icon">🛁</span>
+                  <span class="feature-text">{{ property.num_bathrooms }} Baños</span>
+                </div>
+              </div>
+
+              <div class="property-description">
+                {{ truncateDescription(property.description) }}
+              </div>
+
+              <div class="property-tags">
+                <span class="property-type-tag">{{ detectType(property.title) }}</span>
               </div>
 
               <div class="property-footer">
-                <span class="property-rating">
-                  <i class="fas fa-star"></i> {{ property.rating || '4.5' }}
-                </span>
-                <button class="view-btn">Ver detalles</button>
+                <button class="details-btn" @click.stop="viewPropertyDetails(property.id)">
+                  <span class="btn-text">Ver Detalles</span>
+                  <span class="btn-arrow">→</span>
+                </button>
               </div>
             </div>
           </div>
@@ -238,7 +282,6 @@ import NavBarComponent from '@/components/NavBarComponent.vue'
 import FooterComponent from '@/components/FooterComponent.vue'
 import { eventBus, EVENTS } from '@/services/eventBus'
 
-
 const router = useRouter()
 
 // Refs
@@ -268,7 +311,7 @@ const profileData = ref({
 const userProperties = ref<any[]>([])
 
 const defaultAvatar = 'https://ui-avatars.com/api/?name=User&background=6366f1&color=fff&size=200'
-const defaultPropertyImage = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400'
+const defaultPropertyImage = 'https://via.placeholder.com/400x300?text=Sin+Imagen'
 
 // Departamentos y ciudades de Colombia
 const departments = ref([
@@ -299,70 +342,54 @@ const availableCities = computed(() => {
   return dept ? dept.cities : []
 })
 
-// Methods
+// Métodos existentes
 const triggerFileInput = () => {
   fileInput.value?.click()
 }
 
-// Método actualizado para manejar la subida de fotos
 const handlePhotoUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
 
   if (!file) return;
 
-  // Validación de tamaño (10MB máximo)
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 10 * 1024 * 1024;
   if (file.size > maxSize) {
     showNotification('La imagen es muy grande. Máximo 10MB', 'error');
     return;
   }
 
-  // Validación de tipo
   const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
   if (!validTypes.includes(file.type)) {
     showNotification('Formato no válido. Usa JPG, PNG, GIF o WEBP', 'error');
     return;
   }
 
-  // Crear FormData y añadir el archivo
   const formData = new FormData();
   formData.append('photo', file);
-
-  // Añadir _method para que Laravel interprete como PUT
   formData.append('_method', 'PUT');
 
   try {
-    // Mostrar loading/preview inmediato (opcional)
     const reader = new FileReader();
     reader.onload = (e) => {
       profileData.value.photo = e.target?.result as string;
     };
     reader.readAsDataURL(file);
 
-    // Enviar al backend
     const response = await api.post(`/users/${profileData.value.id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
 
-    // Actualizar con la respuesta del servidor
     if (response.data.user && response.data.user.photo) {
       profileData.value.photo = response.data.user.photo;
-    }
-
-    if (response.data.user && response.data.user.photo) {
-      profileData.value.photo = response.data.user.photo;
-
-      // ⭐ Emitir evento para actualizar la navbar
       eventBus.emit(EVENTS.PROFILE_PHOTO_UPDATED, response.data.user.photo);
     }
 
     showNotification('Foto actualizada correctamente', 'success');
   } catch (error: any) {
     console.error('Error al subir la foto:', error);
-
     if (error.response?.data?.errors) {
       const firstError = Object.values(error.response.data.errors)[0];
       showNotification(Array.isArray(firstError) ? firstError[0] : 'Error al subir la foto', 'error');
@@ -370,26 +397,16 @@ const handlePhotoUpload = async (event: Event) => {
       showNotification('Error al subir la foto. Intenta nuevamente', 'error');
     }
   } finally {
-    // Limpiar input file
     if (fileInput.value) {
       fileInput.value.value = '';
     }
   }
 };
 
-// Método mejorado para notificaciones
 const showNotification = (message: string, type: 'success' | 'error') => {
-  // Opción 1: Console log (para debug)
   console.log(`${type}: ${message}`);
-
-  // Opción 2: Alert simple
-  // alert(message);
-
-  // Opción 3: Toast notification (implementa según tu librería)
-  // toast[type](message);
 };
 
-// Método mejorado para guardar biografía
 const saveBio = async () => {
   if (bioText.value.trim() === profileData.value.bio) {
     editingBio.value = false;
@@ -410,7 +427,6 @@ const saveBio = async () => {
   }
 };
 
-// Método mejorado para guardar ubicación
 const saveLocation = async () => {
   try {
     const response = await api.put(`/users/${profileData.value.id}`, {
@@ -428,7 +444,6 @@ const saveLocation = async () => {
   }
 };
 
-
 const handleImageError = (event: Event) => {
   const target = event.target as HTMLImageElement
   target.src = defaultAvatar
@@ -439,18 +454,8 @@ const startEditBio = () => {
   editingBio.value = true
 }
 
-
 const updateCities = () => {
   selectedCity.value = ''
-}
-
-
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0
-  }).format(price)
 }
 
 const formatDate = (date: string) => {
@@ -467,6 +472,52 @@ const viewPropertyDetails = (propertyId: number) => {
 
 const addProperty = () => {
   router.push('/properties/create')
+}
+
+// NUEVOS MÉTODOS PARA PROPIEDADES
+const handlePropertyImageError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  target.src = defaultPropertyImage
+}
+
+const friendlyStatus = (status: string) => {
+  const statusMap: { [key: string]: string } = {
+    available: 'Disponible',
+    rented: 'Rentada',
+    maintenance: 'En mantenimiento',
+    sold: 'Vendida'
+  }
+  return statusMap[status] || status
+}
+
+const detectType = (title: string) => {
+  const t = title.toLowerCase();
+  if (t.includes("casa")) return "Casa";
+  if (t.includes("apartamento") || t.includes("apto")) return "Apartamento";
+  if (t.includes("local")) return "Local";
+  if (t.includes("finca")) return "Finca";
+  return "Propiedad";
+}
+
+// CORREGIDO: Removido el tipo explícito para maxLength
+const truncateDescription = (description: string, maxLength = 120) => {
+  if (!description) return "Descripción no disponible";
+  return description.length > maxLength
+    ? description.substring(0, maxLength) + "..."
+    : description;
+}
+
+const deleteProperty = async (id: number) => {
+  if (!confirm("¿Eliminar esta propiedad permanentemente?")) return;
+
+  try {
+    await api.delete(`/properties/${id}`);
+    userProperties.value = userProperties.value.filter((p) => p.id !== id);
+    showNotification('Propiedad eliminada correctamente', 'success');
+  } catch (error) {
+    console.error("Error eliminando propiedad:", error);
+    showNotification("Error al eliminar la propiedad", 'error');
+  }
 }
 
 // Lifecycle
@@ -492,6 +543,7 @@ onMounted(async () => {
 
     bioText.value = profileData.value.bio
 
+    // Cargar propiedades del usuario
     const propertiesResponse = await api.get('/properties')
     userProperties.value = propertiesResponse.data.filter(
       (p: any) => p.user_id === userData.id
@@ -521,12 +573,9 @@ onMounted(async () => {
 }
 
 @keyframes backgroundShift {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translate(0, 0) scale(1);
   }
-
   50% {
     transform: translate(20px, 20px) scale(1.1);
   }
@@ -550,51 +599,21 @@ onMounted(async () => {
   margin-bottom: 30px;
   animation: fadeInUp 0.6s ease;
   transition: transform 0.35s ease, box-shadow 0.35s ease;
-  /* animación suave */
 }
-
 
 .profile-header-card:hover {
   transform: translateY(-5px) scale(1.02);
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18);
 }
 
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(30px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-.cover-section {
-  height: 200px;
-  position: relative;
-  overflow: hidden;
-}
-
-.cover-gradient {
-  width: 100%;
-  height: 100%;
-  background: url("https://i.pinimg.com/1200x/e2/d2/b7/e2d2b7877ffb88a68d6b72e5ea0bd965.jpg") center center / cover no-repeat;
-  filter: blur(8px) brightness(0.7);
-  background-size: 200% 200%;
-}
-
-@keyframes gradientShift {
-
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
   }
 }
 
@@ -603,9 +622,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* centrar todos los hijos */
   text-align: center;
-  /* centrar texto */
   position: relative;
 }
 
@@ -613,12 +630,9 @@ onMounted(async () => {
 .avatar-section {
   display: flex;
   flex-direction: column;
-  /* badge debajo del avatar */
   align-items: center;
-  /* centrado horizontal */
   gap: 15px;
   margin-top: -10px;
-  /* ajuste sutil para que no se suba tanto */
   margin-bottom: 20px;
 }
 
@@ -692,7 +706,6 @@ onMounted(async () => {
   flex-direction: column;
   gap: 20px;
   align-items: center;
-  /* centrado */
 }
 
 .name-section h1 {
@@ -720,7 +733,6 @@ onMounted(async () => {
   border-radius: 8px;
   justify-content: center;
   margin: 0 auto;
-  /* centrado */
 }
 
 .location-section:hover {
@@ -801,7 +813,6 @@ onMounted(async () => {
   display: flex;
   gap: 60px;
   justify-content: center;
-  /* centrado */
   padding: 20px 0;
   border-top: 1px solid #da9c5f;
 }
@@ -823,7 +834,6 @@ onMounted(async () => {
   font-size: 14px;
   color: #ccc;
 }
-
 
 /* Info Cards Grid */
 .info-cards-grid {
@@ -869,7 +879,6 @@ onMounted(async () => {
   object-fit: contain;
 }
 
-
 .info-content {
   display: flex;
   flex-direction: column;
@@ -890,7 +899,7 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* Properties Section */
+/* NUEVOS ESTILOS PARA PROPIEDADES - MEJORADOS */
 .properties-section {
   backdrop-filter: blur(10px);
   border-radius: 24px;
@@ -906,7 +915,6 @@ onMounted(async () => {
   transform: translateY(-5px) scale(1.02);
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18);
 }
-
 
 .section-header {
   display: flex;
@@ -944,127 +952,242 @@ onMounted(async () => {
 
 .properties-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 2.5rem;
 }
 
 .property-card {
-  background: wheat;
-  border-radius: 16px;
+  background: white;
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s ease;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  position: relative;
+  border: 1px solid #f0ebe3;
 }
 
 .property-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 50px rgba(59, 37, 29, 0.15);
+}
+
+.property-badge {
+  position: absolute;
+  top: 1.2rem;
+  left: 1.2rem;
+  background: linear-gradient(45deg, #e67e22, #f39c12);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 25px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3);
+}
+
+.property-image-container {
+  position: relative;
+  height: 280px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
 .property-image {
-  height: 200px;
-  overflow: hidden;
-  position: relative;
-}
-
-.property-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
 }
 
-.property-card:hover .property-image img {
-  transform: scale(1.1);
+.property-card:hover .property-image {
+  transform: scale(1.05);
 }
 
-.property-badge {
+.property-overlay {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.4));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.2rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.property-card:hover .property-overlay {
+  opacity: 1;
+}
+
+.property-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.action-btn {
   background: rgba(255, 255, 255, 0.95);
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.1rem;
   backdrop-filter: blur(10px);
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #667eea;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  text-decoration: none;
+  color: inherit;
 }
 
-.property-details {
-  padding: 20px;
+.action-btn:hover {
+  background: white;
+  transform: scale(1.15);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
-.property-details h3 {
-  font-size: 18px;
-  color: #2d3748;
-  margin-bottom: 8px;
-  font-weight: 600;
+.edit-btn:hover {
+  background: #3498db;
+  color: white;
 }
 
-/* Property Details */
-.property-price {
-  font-size: 18px;
+.delete-btn:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+.property-content {
+  padding: 2rem;
+}
+
+.property-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.property-title {
+  font-size: 1.4rem;
   font-weight: 700;
-  color: #38A169;
-  margin-bottom: 8px;
+  color: #2c3e50;
+  margin: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.property-price {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #27ae60;
+  margin-left: 1rem;
+  text-align: right;
+}
+
+.price-period {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  font-weight: 500;
 }
 
 .property-location {
-  font-size: 14px;
-  color: #4A5568;
+  color: #5d6d7e;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 0.5rem;
 }
 
 .property-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.feature-item {
   display: flex;
-  gap: 16px;
-  font-size: 14px;
-  color: #718096;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  transition: background 0.3s ease;
 }
 
-.property-features i {
-  color: #667eea;
+.feature-item:hover {
+  background: #e9ecef;
 }
 
-/* Property Card Footer */
+.feature-icon {
+  font-size: 1.1rem;
+}
+
+.feature-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.property-description {
+  color: #5d6d7e;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.property-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+}
+
+.property-type-tag {
+  background: #3498db;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .property-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 12px;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.property-rating {
-  font-size: 14px;
-  font-weight: 600;
-  color: #F6AD55;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.view-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.details-btn {
+  flex: 1;
+  background: linear-gradient(45deg, #3b251d, #2e1d17);
   color: white;
   border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 15px rgba(59, 37, 29, 0.2);
 }
 
-.view-btn:hover {
+.details-btn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 37, 29, 0.3);
 }
 
-/* Empty State Properties */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -1104,9 +1227,7 @@ onMounted(async () => {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
   animation: fadeInUp 0.6s ease;
   transition: transform 0.35s ease, box-shadow 0.35s ease;
-  /* animación suave */
 }
-
 
 .social-section:hover {
   transform: translateY(-5px) scale(1.02);
@@ -1142,7 +1263,6 @@ onMounted(async () => {
   width: 24px;
   height: 24px;
 }
-
 
 .social-icon.facebook {
   background: #1877f2;
@@ -1255,5 +1375,66 @@ onMounted(async () => {
 .btn-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .properties-grid {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .properties-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .property-features {
+    grid-template-columns: 1fr;
+  }
+  
+  .property-header {
+    flex-direction: column;
+  }
+  
+  .property-price {
+    margin-left: 0;
+    margin-top: 0.5rem;
+    text-align: left;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .profile-content {
+    padding: 30px 20px;
+  }
+  
+  .stats-section {
+    gap: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .properties-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .property-card {
+    margin: 0 0.5rem;
+  }
+  
+  .property-content {
+    padding: 1.5rem;
+  }
+  
+  .profile-container {
+    padding: 80px 15px 30px;
+  }
 }
 </style>
