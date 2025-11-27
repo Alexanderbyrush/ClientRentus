@@ -5,10 +5,22 @@
       <div class="logo-text"><strong>Rent</strong><span>Us</span></div>
     </div>
 
-    <nav class="property-nav">
-      <router-link to="/" class="nav-link" active-class="active" exact>Home</router-link>
-      <router-link to="/propiedades" class="nav-link" active-class="active">Propiedades</router-link>
-      <router-link to="/sobre-nosotros" class="nav-link" active-class="active">Sobre nosotros</router-link>
+    <!-- Barra de navegación actualizada -->
+    <nav class="navigation-section">
+      <div class="nav-links">
+        <router-link to="/" class="nav-link" active-class="active" exact>
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text">Inicio</span>
+        </router-link>
+        <router-link to="/propiedades" class="nav-link" active-class="active">
+          <span class="nav-icon">🏘️</span>
+          <span class="nav-text">Propiedades</span>
+        </router-link>
+        <router-link to="/sobre-nosotros" class="nav-link" active-class="active">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">Nosotros</span>
+        </router-link>
+      </div>
     </nav>
 
     <!-- Si no está logueado -->
@@ -16,63 +28,94 @@
       Iniciar Sesión
     </button>
 
-    <!-- Si está logueado -->
-    <div v-else class="user-box" id="userToggle" @click="toggleUserDropdown"
-      style="cursor: pointer; position: relative">
-      <img v-if="profilePhoto" :src="profilePhoto" alt="Usuario" class="user-img" />
-      <img v-else src="/img/default.webp" alt="Usuario" class="user-img" />
-
-      <div class="user-info">Hola, {{ firstName }}</div>
-      <span class="user-arrow">▾</span>
-
-      <!-- Dropdown -->
-      <div class="user-dropdown" :class="{ show: showDropdown }" id="userDropdown" @click.stop>
-        <div @click="goPerfil" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/user.png" alt="Perfil" />
-          Perfil
-        </div>
-
-        <div @click="openMaintenanceModal" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/maintenance.png" alt="Mantenimiento" />
-          Mantenimiento
-        </div>
-
-        <div @click="goContratos" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/agreement.png" alt="Contratos" />
-          Contratos
-        </div>
-
-        <div @click="goPagos" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/bank-cards.png" alt="Pagos" />
-          Pagos
-        </div>
-
-        <div @click="openSolicitudesModal" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/document--v1.png" alt="Solicitudes" />
-          Solicitudes (Dueño)
-        </div>
-
-        <!-- NUEVO: Para inquilinos -->
-        <div @click="openMyRequestsModalFn" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/calendar--v1.png" alt="Mis Solicitudes" />
-          Mis Solicitudes
-        </div>
-
-        <div @click="openNotificaciones" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/appointment-reminders--v1.png" alt="Notificaciones" />
-          Notificaciones
-          <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
-        </div>
-
-        <div @click="goAjustes" class="dropdown-item">
-          <img src="https://img.icons8.com/ios-filled/20/settings.png" alt="Ajustes" />
-          Ajustes
-        </div>
-
-        <div @click="logout" class="dropdown-item logout-item">
-          Cerrar sesión
-        </div>
+    <!-- Si está logueado - Dropdown actualizado -->
+    <div v-else class="user-profile" id="userToggle" @click="toggleUserDropdown">
+      <div class="user-avatar">
+        <img v-if="profilePhoto" :src="profilePhoto" alt="Usuario" class="avatar-img" />
+        <img v-else src="/img/default.webp" alt="Usuario" class="avatar-img" />
+        <div class="status-indicator"></div>
       </div>
+      
+      <div class="user-details">
+        <div class="user-greeting">Hola, {{ firstName }}</div>
+        <div class="user-role">Inquilino</div>
+      </div>
+      
+      <div class="dropdown-arrow" :class="{ rotated: showDropdown }">
+        <svg width="12" height="7" viewBox="0 0 12 7" fill="none">
+          <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!-- Dropdown Menu actualizado -->
+      <transition name="dropdown-fade">
+        <div v-if="showDropdown" class="user-dropdown-menu" @click.stop>
+          <div class="dropdown-header">
+            <div class="dropdown-avatar">
+              <img v-if="profilePhoto" :src="profilePhoto" alt="Usuario" />
+              <img v-else src="/img/default.webp" alt="Usuario" />
+            </div>
+            <div class="dropdown-user-info">
+              <div class="dropdown-name">{{ fullName }}</div>
+              <div class="dropdown-email">usuario@ejemplo.com</div>
+            </div>
+          </div>
+          
+          <div class="dropdown-divider"></div>
+          
+          <div class="dropdown-items">
+            <div @click="goPerfil" class="dropdown-item">
+              <div class="item-icon">👤</div>
+              <div class="item-text">Mi Perfil</div>
+            </div>
+            
+            <div @click="openNotificaciones" class="dropdown-item">
+              <div class="item-icon">🔔</div>
+              <div class="item-text">Notificaciones</div>
+              <span v-if="unreadCount > 0" class="notification-badge">{{ unreadCount }}</span>
+            </div>
+            
+            <div @click="goContratos" class="dropdown-item">
+              <div class="item-icon">📄</div>
+              <div class="item-text">Contratos</div>
+            </div>
+            
+            <div @click="goPagos" class="dropdown-item">
+              <div class="item-icon">💳</div>
+              <div class="item-text">Pagos</div>
+            </div>
+            
+            <div class="dropdown-section-divider">Solicitudes</div>
+            
+            <div @click="openMaintenanceModal" class="dropdown-item">
+              <div class="item-icon">🔧</div>
+              <div class="item-text">Mantenimiento</div>
+            </div>
+            
+            <div @click="openSolicitudesModal" class="dropdown-item">
+              <div class="item-icon">📋</div>
+              <div class="item-text">Solicitudes (Dueño)</div>
+            </div>
+            
+            <div @click="openMyRequestsModalFn" class="dropdown-item">
+              <div class="item-icon">📅</div>
+              <div class="item-text">Mis Solicitudes</div>
+            </div>
+            
+            <div class="dropdown-section-divider">Configuración</div>
+            
+            <div @click="goAjustes" class="dropdown-item">
+              <div class="item-icon">⚙️</div>
+              <div class="item-text">Ajustes</div>
+            </div>
+            
+            <div @click="logout" class="dropdown-item logout-item">
+              <div class="item-icon">🚪</div>
+              <div class="item-text">Cerrar Sesión</div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </header>
 
@@ -228,7 +271,7 @@ const logout = () => {
 // Event handlers
 function handleClickOutsideDropdown(event) {
   const userMenu = document.getElementById("userToggle");
-  const dropdown = document.getElementById("userDropdown");
+  const dropdown = document.querySelector(".user-dropdown-menu");
 
   if (!userMenu || !dropdown) return;
 
@@ -312,41 +355,68 @@ onBeforeUnmount(() => {
   color: #da9c5f;
 }
 
-.property-nav {
+/* Barra de navegación actualizada */
+.navigation-section {
   display: flex;
-  gap: 2rem;
-  align-items: center;
+  justify-content: center;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 0.5rem;
+  backdrop-filter: blur(10px);
 }
 
 .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: #f0e5db;
   text-decoration: none;
   font-weight: 500;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  overflow: hidden;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s;
+}
+
+.nav-link:hover::before {
+  left: 100%;
 }
 
 .nav-link:hover {
-  color: #da9c5f;
-  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  background: rgba(218, 156, 95, 0.15);
+  transform: translateY(-1px);
 }
 
 .nav-link.active {
-  color: #da9c5f;
-  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  background: linear-gradient(135deg, #da9c5f, #b8791f);
+  box-shadow: 0 4px 12px rgba(218, 156, 95, 0.3);
 }
 
-.nav-link.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 1rem;
-  right: 1rem;
-  height: 2px;
-  background: #da9c5f;
-  border-radius: 2px;
+.nav-icon {
+  font-size: 1.1rem;
+}
+
+.nav-text {
+  font-size: 0.95rem;
 }
 
 .login-btn {
@@ -365,85 +435,158 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 12px rgba(218, 156, 95, 0.3);
 }
 
-.user-box {
+/* Dropdown actualizado */
+.user-profile {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   padding: 0.5rem 1rem;
-  border-radius: 8px;
+  border-radius: 12px;
+  cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
 }
 
-.user-box:hover {
-  background: rgba(255, 255, 255, 0.1);
+.user-profile:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.user-img {
-  width: 40px;
-  height: 40px;
+.user-avatar {
+  position: relative;
+}
+
+.avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #da9c5f;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #4CAF50;
+  border: 2px solid #2c1a12;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-greeting {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.user-role {
+  color: #da9c5f;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.dropdown-arrow {
+  color: #f0e5db;
+  transition: transform 0.3s ease;
+}
+
+.dropdown-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu */
+.user-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  min-width: 280px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  margin-top: 1rem;
+  overflow: hidden;
+  z-index: 1001;
+  border: 1px solid #e8e8e8;
+}
+
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.dropdown-avatar img {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #da9c5f;
 }
 
-.user-info {
-  color: #f0e5db;
-  font-weight: 500;
+.dropdown-user-info {
+  flex: 1;
 }
 
-.user-arrow {
-  color: #f0e5db;
-  font-size: 1.2rem;
-  transition: transform 0.3s ease;
+.dropdown-name {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
 }
 
-.user-dropdown.show+.user-arrow {
-  transform: rotate(180deg);
+.dropdown-email {
+  font-size: 0.85rem;
+  color: #7f8c8d;
 }
 
-.user-dropdown {
-  display: none;
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: white;
-  min-width: 220px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  margin-top: 0.5rem;
-  overflow: hidden;
-  z-index: 1001;
-  border: 1px solid #e0d9cc;
+.dropdown-divider {
+  height: 1px;
+  background: #e9ecef;
+  margin: 0;
 }
 
-.user-dropdown.show {
-  display: block;
-  animation: fadeInUp 0.3s ease;
+.dropdown-section-divider {
+  padding: 0.75rem 1.5rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.dropdown-items {
+  padding: 0.5rem 0;
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
   color: #2c3e50;
   text-decoration: none;
-  transition: all 0.3s ease;
-  border-bottom: 1px solid #f8f9fa;
+  transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .dropdown-item:hover {
@@ -451,46 +594,39 @@ onBeforeUnmount(() => {
   color: #3b251d;
 }
 
-.dropdown-item:last-child {
-  border-bottom: none;
-}
-
-.dropdown-item img {
+.item-icon {
+  font-size: 1.1rem;
   width: 20px;
-  height: 20px;
-  opacity: 0.7;
+  text-align: center;
 }
 
-.notification-item {
-  position: relative;
+.item-text {
+  flex: 1;
+  font-weight: 500;
 }
 
-.notif-badge {
-  position: absolute;
-  right: 1.25rem;
+.notification-badge {
   background: #e74c3c;
   color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 10px;
+  padding: 0.2rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
+  min-width: 20px;
+  text-align: center;
 }
 
 .logout-item {
-  color: #e74c3c !important;
-  font-weight: 600;
+  color: #e74c3c;
   margin-top: 0.5rem;
-  border-top: 1px solid #e0d9cc !important;
+  border-top: 1px solid #e9ecef;
 }
 
 .logout-item:hover {
-  background: #ffeaea !important;
+  background: #ffeaea;
 }
 
+/* Router transitions */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -507,12 +643,22 @@ onBeforeUnmount(() => {
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .nav-text {
+    display: none;
+  }
+  
+  .nav-link {
+    padding: 0.75rem;
+  }
+}
+
 @media (max-width: 768px) {
   .property-header {
     padding: 1rem;
   }
 
-  .property-nav {
+  .nav-links {
     gap: 1rem;
   }
 
@@ -525,18 +671,22 @@ onBeforeUnmount(() => {
     font-size: 1.2rem;
   }
 
-  .user-info {
+  .user-details {
     display: none;
   }
 
-  .user-dropdown {
-    min-width: 200px;
-    right: -1rem;
+  .user-dropdown-menu {
+    min-width: 260px;
+    right: -0.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .property-nav {
+  .navigation-section {
+    display: none;
+  }
+  
+  .nav-links {
     gap: 0.5rem;
   }
 
@@ -551,6 +701,11 @@ onBeforeUnmount(() => {
 
   .logo-text {
     font-size: 1rem;
+  }
+  
+  .user-dropdown-menu {
+    min-width: 240px;
+    right: -1rem;
   }
 }
 </style>
