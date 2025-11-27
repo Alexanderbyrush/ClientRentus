@@ -205,7 +205,7 @@ input:focus, textarea:focus {
   margin: 15px 0;
 }
 
-.carousel-nav {
+.carousel-quitar-porahora {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -223,16 +223,16 @@ input:focus, textarea:focus {
   justify-content: center;
 }
 
-.carousel-nav:disabled {
+.carousel-quitar-porahora:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.carousel-nav.prev {
+.carousel-quitar-porahora.prev {
   left: 10px;
 }
 
-.carousel-nav.next {
+.carousel-quitar-porahora.next {
   right: 10px;
 }
 

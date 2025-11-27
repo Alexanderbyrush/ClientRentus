@@ -45,7 +45,7 @@
       </div>
     </div>
     <div class="section-header">
-      <h2 class="section-title">Propiedades Destacadas</h2>
+      <h2 class="section-title">Propiedades Publicadas</h2>
 
       <router-link to="/properties/create" class="btn-create">
         Crear propiedad
@@ -53,7 +53,6 @@
     </div>
 
     <div class="contenedor-propiedades section-block">
-      <h2 class="section-title">Propiedades publicadas</h2>
       <!-- LISTADO -->
       <div v-if="filteredProperties.length" class="properties-grid">
 

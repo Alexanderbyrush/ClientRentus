@@ -25,10 +25,15 @@
           :class="{
             active: activeIndex === index,
             'highlight-new': contract.isNew,
+            'highlight-pending': contract.status === 'pending' && isUserTenant(contract),
           }"
           @click="setActiveContract(index)"
         >
           <div class="card-badge" v-if="contract.isNew">Nuevo</div>
+          <div class="card-badge pending-badge" v-if="contract.status === 'pending' && isUserTenant(contract)">
+            Acción requerida
+          </div>
+          
           <img
             :src="getPropertyImage(contract.propertyImage)"
             :alt="contract.title"
@@ -44,26 +49,42 @@
           <div class="contract-price">
             {{ formatPrice(contract.monthlyPrice) }}/mes
           </div>
+          
+          <!-- ACCIONES SEGÚN ESTADO -->
           <div class="card-actions">
-            <button
-              class="vista-previa"
-              @click.stop="openContractModal(contract)"
-            >
-              <i class="fas fa-eye"></i>
-              Vista previa
-            </button>
-            <button
-              class="download-btn-sm"
-              @click.stop="downloadContract(contract)"
-            >
-              <i class="fas fa-download"></i>
-            </button>
+            <!-- Si es PENDIENTE y soy el INQUILINO -->
+            <template v-if="contract.status === 'pending' && isUserTenant(contract)">
+              <button
+                class="btn-accept"
+                @click.stop="openAcceptModal(contract)"
+              >
+                <i class="fas fa-check"></i>
+                Revisar
+              </button>
+            </template>
+            
+            <!-- Si NO es pendiente o NO soy el inquilino -->
+            <template v-else>
+              <button
+                class="vista-previa"
+                @click.stop="openContractModal(contract)"
+              >
+                <i class="fas fa-eye"></i>
+                Vista previa
+              </button>
+              <button
+                class="download-btn-sm"
+                @click.stop="downloadContract(contract)"
+              >
+                <i class="fas fa-download"></i>
+              </button>
+            </template>
           </div>
         </div>
       </div>
 
       <!-- Controles del Carrusel -->
-      <div v-if="!loading" class="carousel-controls">
+      <div v-if="!loading && contracts.length > 0" class="carousel-controls">
         <button @click="prevContract" :disabled="activeIndex === 0">⟨</button>
         <span class="carousel-counter"
           >{{ activeIndex + 1 }} / {{ contracts.length }}</span
@@ -77,7 +98,7 @@
       </div>
 
       <!-- Estadísticas -->
-      <div v-if="!loading" class="contracts-stats">
+      <div v-if="!loading && contracts.length > 0" class="contracts-stats">
         <div class="stat-item">
           <span class="stat-number">{{ contractStats.active }}</span>
           <span class="stat-label">Activos</span>
@@ -91,9 +112,15 @@
           <span class="stat-label">Pendientes</span>
         </div>
       </div>
+
+      <!-- Mensaje si no hay contratos -->
+      <div v-if="!loading && contracts.length === 0" class="empty-state">
+        <i class="fas fa-file-contract"></i>
+        <p>No tienes contratos aún</p>
+      </div>
     </main>
 
-    <!-- Modal de Vista Previa -->
+    <!-- Modal de Vista Previa (existente) -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -169,6 +196,107 @@
         </div>
       </div>
     </div>
+
+    <!-- NUEVO: Modal de Aceptar/Rechazar Contrato -->
+    <div v-if="showAcceptModal" class="modal-overlay" @click="closeAcceptModal">
+      <div class="accept-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>📄 Revisar Contrato</h3>
+          <span class="close" @click="closeAcceptModal">&times;</span>
+        </div>
+
+        <div class="accept-modal-body">
+          <!-- Vista previa del PDF -->
+          <div v-if="previewLoading" class="preview-loading">
+            <div class="loading-spinner"></div>
+            <p>Cargando contrato...</p>
+          </div>
+
+          <div v-else class="contract-preview">
+            <iframe
+              v-if="contractPdfUrl"
+              :src="contractPdfUrl"
+              class="pdf-preview"
+              frameborder="0"
+            ></iframe>
+            <div v-else class="preview-fallback">
+              <i class="fas fa-file-contract"></i>
+              <p>Vista previa no disponible</p>
+            </div>
+          </div>
+
+          <!-- Detalles del contrato -->
+          <div class="contract-summary">
+            <h4>Resumen del Contrato</h4>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">Propiedad:</span>
+                <span class="summary-value">{{ selectedContract?.propertyAddress }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Arrendador:</span>
+                <span class="summary-value">{{ selectedContract?.landlordName }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Valor mensual:</span>
+                <span class="summary-value highlight">{{ formatPrice(selectedContract?.monthlyPrice) }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Depósito:</span>
+                <span class="summary-value">{{ formatPrice(selectedContract?.deposit) }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Duración:</span>
+                <span class="summary-value">{{ getContractDuration(selectedContract!) }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Inicio:</span>
+                <span class="summary-value">{{ formatDate(selectedContract?.startDate) }}</span>
+              </div>
+            </div>
+
+            <!-- Cláusulas -->
+            <div v-if="selectedContract?.clauses && selectedContract.clauses.length > 0" class="clauses-section">
+              <h5>Cláusulas importantes:</h5>
+              <ul class="clauses-list">
+                <li v-for="(clause, idx) in selectedContract.clauses" :key="idx">
+                  {{ clause }}
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Confirmación checkbox -->
+          <div class="confirmation-box">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="contractAccepted" />
+              <span>He leído y acepto los términos del contrato</span>
+            </label>
+          </div>
+
+          <!-- Acciones -->
+          <div class="accept-modal-actions">
+            <button 
+              class="btn-accept-full" 
+              @click="acceptContract"
+              :disabled="!contractAccepted || acceptLoading"
+            >
+              <i class="fas fa-check-circle"></i>
+              {{ acceptLoading ? 'Aceptando...' : 'Aceptar Contrato' }}
+            </button>
+            <button 
+              class="btn-reject-full" 
+              @click="rejectContract"
+              :disabled="acceptLoading"
+            >
+              <i class="fas fa-times-circle"></i>
+              Rechazar Contrato
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <FooterComponent />
   </div>
 </template>
@@ -183,7 +311,7 @@ import FooterComponent from "@/components/FooterComponent.vue";
 
 const router = useRouter();
 
-// Interfaz de contrato con todos los campos necesarios
+// Interfaz de contrato
 interface ContractCardUI {
   id: number;
   title: string;
@@ -194,31 +322,36 @@ interface ContractCardUI {
   endDate?: string;
   monthlyPrice?: number;
   deposit?: number;
-
   tenantName: string;
   tenantCC?: string;
   tenantEmail?: string;
-
   landlordName: string;
   landlordCC?: string;
   landlordEmail?: string;
-
   propertyType?: string;
   area?: number;
   bedrooms?: number;
   bathrooms?: number;
   clauses?: string[];
   isNew?: boolean;
+  tenantId?: number;
+  landlordId?: number;
 }
 
 // Estados
 const contracts = ref<ContractCardUI[]>([]);
 const activeIndex = ref(0);
 const showModal = ref(false);
+const showAcceptModal = ref(false);
 const selectedContract = ref<ContractCardUI | null>(null);
 const contractPdfUrl = ref<string>("");
 const previewLoading = ref(false);
 const loading = ref(true);
+const contractAccepted = ref(false);
+const acceptLoading = ref(false);
+
+// Usuario actual
+const currentUserId = ref<number | null>(null);
 
 // Estadísticas
 const contractStats = ref({
@@ -227,12 +360,27 @@ const contractStats = ref({
   total: 0,
 });
 
-// Bloquear / desbloquear scroll al abrir/cerrar modal
+// Cargar usuario actual
+const loadCurrentUser = () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  currentUserId.value = user.id || null;
+};
+
+// Verificar si el usuario actual es el inquilino
+const isUserTenant = (contract: ContractCardUI) => {
+  return contract.tenantId === currentUserId.value;
+};
+
+// Bloquear scroll
 watch(showModal, (val) => {
   document.body.style.overflow = val ? "hidden" : "";
 });
 
-// Función para cargar estadísticas desde la API
+watch(showAcceptModal, (val) => {
+  document.body.style.overflow = val ? "hidden" : "";
+});
+
+// Cargar estadísticas
 const loadContractStats = async () => {
   try {
     const response = await contractService.getContractStats();
@@ -242,13 +390,13 @@ const loadContractStats = async () => {
   }
 };
 
-// Métodos de navegación
+// Navegación
 const setActiveContract = (index: number) => (activeIndex.value = index);
 const prevContract = () => activeIndex.value > 0 && activeIndex.value--;
 const nextContract = () =>
   activeIndex.value < contracts.value.length - 1 && activeIndex.value++;
 
-// Modal y PDF
+// Modal de vista previa (existente)
 const openContractModal = async (contract: ContractCardUI) => {
   selectedContract.value = contract;
   showModal.value = true;
@@ -269,7 +417,78 @@ const closeModal = () => {
   contractPdfUrl.value = "";
 };
 
-// Descargar y compartir contrato
+// NUEVO: Modal de aceptar/rechazar
+const openAcceptModal = async (contract: ContractCardUI) => {
+  selectedContract.value = contract;
+  showAcceptModal.value = true;
+  contractAccepted.value = false;
+  previewLoading.value = true;
+  contractPdfUrl.value = "";
+
+  try {
+    const pdfUrl = await pdfService.generateContract(contract);
+    contractPdfUrl.value = pdfUrl;
+  } finally {
+    previewLoading.value = false;
+  }
+};
+
+const closeAcceptModal = () => {
+  showAcceptModal.value = false;
+  selectedContract.value = null;
+  contractAccepted.value = false;
+  contractPdfUrl.value = "";
+};
+
+// NUEVO: Aceptar contrato
+const acceptContract = async () => {
+  if (!selectedContract.value || !contractAccepted.value) return;
+
+  if (!confirm("¿Estás seguro de aceptar este contrato? Esta acción es definitiva.")) {
+    return;
+  }
+
+  acceptLoading.value = true;
+
+  try {
+    await contractService.acceptContract(selectedContract.value.id);
+    alert("✅ Contrato aceptado exitosamente. Ahora está activo.");
+    closeAcceptModal();
+    await loadContracts();
+    await loadContractStats();
+  } catch (error: any) {
+    console.error("Error aceptando contrato:", error);
+    alert(error.response?.data?.message || "Error al aceptar el contrato");
+  } finally {
+    acceptLoading.value = false;
+  }
+};
+
+// NUEVO: Rechazar contrato
+const rejectContract = async () => {
+  if (!selectedContract.value) return;
+
+  if (!confirm("¿Estás seguro de rechazar este contrato? Esta acción NO se puede deshacer.")) {
+    return;
+  }
+
+  acceptLoading.value = true;
+
+  try {
+    await contractService.rejectContract(selectedContract.value.id);
+    alert("❌ Contrato rechazado.");
+    closeAcceptModal();
+    await loadContracts();
+    await loadContractStats();
+  } catch (error: any) {
+    console.error("Error rechazando contrato:", error);
+    alert(error.response?.data?.message || "Error al rechazar el contrato");
+  } finally {
+    acceptLoading.value = false;
+  }
+};
+
+// Descargar y compartir
 const downloadContract = async (contract: ContractCardUI) => {
   try {
     const pdfUrl = await pdfService.generateContract(contract);
@@ -299,15 +518,11 @@ const shareContract = async (contract: ContractCardUI) => {
 
 // Utilidades
 const getPropertyImage = (img?: string) => {
-  if (!img) return "/img/default-property.jpg"; // placeholder
-  // Si empieza con data:image es Base64
+  if (!img) return "/img/default-property.jpg";
   if (img.startsWith("data:image")) return img;
-  // Si empieza con / es URL relativa
   if (img.startsWith("/")) return img;
-  // Si no, asumimos que está en la carpeta /img/
   return `/img/${img}`;
 };
-
 
 const getStatusInfo = (status: string) => {
   const map: Record<string, { text: string; color: string }> = {
@@ -315,10 +530,7 @@ const getStatusInfo = (status: string) => {
     inactive: { text: "Inactivo", color: "gray" },
     expired: { text: "Expirado", color: "red" },
     pending: { text: "Pendiente", color: "orange" },
-    activo: { text: "Activo", color: "green" },
-    inactivo: { text: "Inactivo", color: "gray" },
-    expirado: { text: "Expirado", color: "red" },
-    pendiente: { text: "Pendiente", color: "orange" },
+    rejected: { text: "Rechazado", color: "red" },
   };
   return map[status] ?? { text: "Desconocido", color: "black" };
 };
@@ -345,34 +557,51 @@ const getContractDuration = (contract: ContractCardUI) => {
   return `${months} meses`;
 };
 
-// Función para cargar contratos reales desde el backend
+// Cargar contratos
 const loadContracts = async () => {
   try {
     loading.value = true;
     const response = await contractService.getContracts();
 
-    contracts.value = response.map((c: any) => ({
-      id: c.id,
-      title: `Contrato ${c.id}`,
-      status: c.status,
-      propertyImage: c.property?.image_url,
-      propertyAddress: c.property?.address,
-      startDate: c.start_date,
-      endDate: c.end_date,
-      monthlyPrice: c.property?.monthly_price,
-      deposit: c.deposit,
-      tenantName: c.tenant?.name ?? "N/A",
-      tenantCC: c.tenant?.id_documento ?? "N/A",
-      tenantEmail: c.tenant?.email ?? "N/A",
-      landlordName: c.landlord?.name ?? "N/A",
-      landlordCC: c.landlord?.id_documento ?? "N/A",
-      landlordEmail: c.landlord?.email ?? "N/A",
-      propertyType: c.property?.title,
-      area: c.property?.area_m2,
-      bedrooms: c.property?.num_bedrooms,
-      bathrooms: c.property?.num_bathrooms,
-      clauses: c.clauses ?? [],
-    }));
+    contracts.value = response.map((c: any) => {
+      // Parsear document_path si es JSON string
+      let parsedTerms: any = {};
+      if (c.document_path) {
+        try {
+          parsedTerms = typeof c.document_path === 'string' 
+            ? JSON.parse(c.document_path) 
+            : c.document_path;
+        } catch (e) {
+          console.error("Error parseando document_path:", e);
+        }
+      }
+
+      return {
+        id: c.id,
+        title: `Contrato ${c.id}`,
+        status: c.status,
+        propertyImage: c.property?.image_url,
+        propertyAddress: c.property?.address,
+        startDate: c.start_date,
+        endDate: c.end_date,
+        monthlyPrice: parsedTerms.monthly_price || c.property?.monthly_price,
+        deposit: c.deposit || parsedTerms.deposit,
+        tenantName: c.tenant?.name ?? "N/A",
+        tenantCC: c.tenant?.id_documento ?? "N/A",
+        tenantEmail: c.tenant?.email ?? "N/A",
+        tenantId: c.tenant_id,
+        landlordName: c.landlord?.name ?? "N/A",
+        landlordCC: c.landlord?.id_documento ?? "N/A",
+        landlordEmail: c.landlord?.email ?? "N/A",
+        landlordId: c.landlord_id,
+        propertyType: c.property?.title,
+        area: c.property?.area_m2,
+        bedrooms: c.property?.num_bedrooms,
+        bathrooms: c.property?.num_bathrooms,
+        clauses: parsedTerms.clauses ?? [],
+        isNew: c.status === 'pending',
+      };
+    });
   } catch (error) {
     console.error("Error cargando contratos:", error);
   } finally {
@@ -380,13 +609,231 @@ const loadContracts = async () => {
   }
 };
 
-// Montaje del componente
+// Montaje
 onMounted(async () => {
+  loadCurrentUser();
   await Promise.all([loadContracts(), loadContractStats()]);
 });
 </script>
 
 <style scoped>
+/* Botón de aceptar en la card */
+.btn-accept {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(45deg, #2ecc71, #27ae60);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-accept:hover {
+  background: linear-gradient(45deg, #27ae60, #229954);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+/* Badge de acción requerida */
+.pending-badge {
+  background: #ff9800 !important;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Highlight para contratos pendientes */
+.highlight-pending {
+  border: 2px solid #ff9800 !important;
+  box-shadow: 0 0 20px rgba(255, 152, 0, 0.3) !important;
+}
+
+/* Modal de aceptar contrato */
+.accept-modal-content {
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.accept-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(90vh - 80px);
+}
+
+.contract-summary {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.summary-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: 1rem;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.summary-value.highlight {
+  color: #2ecc71;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.clauses-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.clauses-section h5 {
+  margin: 0 0 15px;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.clauses-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.clauses-list li {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: white;
+  border-left: 4px solid #3498db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.confirmation-box {
+  background: #fff3cd;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+  margin: 20px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #856404;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.accept-modal-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.btn-accept-full,
+.btn-reject-full {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-accept-full {
+  background: linear-gradient(45deg, #2ecc71, #27ae60);
+  color: white;
+}
+
+.btn-accept-full:hover:not(:disabled) {
+  background: linear-gradient(45deg, #27ae60, #229954);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+.btn-accept-full:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-reject-full {
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.btn-reject-full:hover:not(:disabled) {
+  background: linear-gradient(45deg, #c0392b, #a93226);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 64px;
+  opacity: 0.3;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .accept-modal-actions {
+    flex-direction: column;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
 /* Mantén todos los estilos anteriores y agrega estos nuevos */
 
 .contracts-page {

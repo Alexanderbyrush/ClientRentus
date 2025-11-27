@@ -327,8 +327,8 @@ header {
   cursor: pointer;
 }
 
-/* NAVBAR */
-nav a {
+/* quitar-porahoraBAR */
+quitar-porahora a {
   margin: 0 1rem;
   text-decoration: none;
   color: #1a1a1a;
@@ -705,7 +705,7 @@ nav a {
 }
 
 /*modal perfil*/
-.user-box {
+.quitar-porahora-box {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -723,13 +723,13 @@ nav a {
   transition: background-color 0.3s ease;
 }
 
-.user-box:hover {
+.quitar-porahora-box:hover {
   background-color: #4D2F24;
 }
 
-.user-box:hover .user-name,
-.user-box:hover .user-role,
-.user-box:hover .user-arrow {
+.quitar-porahora-box:hover .user-name,
+.quitar-porahora-box:hover .user-role,
+.quitar-porahora-box:hover .user-arrow {
   color: white;
 }
 
@@ -763,11 +763,11 @@ nav a {
   color: #333;
 }
 
-/* Dropdown ajustado al ancho de user-box */
+/* quitar-porahora-dropdow ajustado al ancho de quitar-porahora-box */
 /*color de fondo y texto */
-/* Asegurar que el dropdown tenga mayor z-index */
-/* Dropdown transparente con fondo claro */
-.user-dropdown {
+/* Asegurar que el quitar-porahora-dropdow tenga mayor z-index */
+/* quitar-porahora-dropdow transparente con fondo claro */
+.user-quitar-porahora-dropdow {
   display: none;
   flex-direction: column;
   /* Opciones de fondo transparente claro: */
@@ -803,7 +803,7 @@ nav a {
   /* Texto oscuro para mejor contraste */
 }
 
-.user-dropdown div {
+.user-quitar-porahora-dropdow div {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -817,7 +817,7 @@ nav a {
   transition: all 0.2s ease;
 }
 
-.user-dropdown div:hover {
+.user-quitar-porahora-dropdow div:hover {
   background: rgba(0, 0, 0, 0.08);
   /* Hover muy sutil */
   text-decoration: none;
@@ -826,11 +826,11 @@ nav a {
   /* Efecto de deslizamiento sutil */
 }
 
-.user-dropdown img {
+.user-quitar-porahora-dropdow img {
   margin-right: 4px;
 }
 
-.user-dropdown.show {
+.user-quitar-porahora-dropdow.show {
   display: flex;
 }
 

@@ -435,6 +435,7 @@ const enviarContraPropuesta = async () => {
 };
 
 // MODAL DE CONTRATO
+// MODAL DE CONTRATO
 const openContractModal = (solicitud) => {
   selectedRequest.value = solicitud;
 
@@ -443,14 +444,21 @@ const openContractModal = (solicitud) => {
     start_date: "",
     end_date: "",
     monthly_price: solicitud.property?.monthly_price || 0,
-    deposit: (solicitud.property?.monthly_price || 0) * 2, // 2 meses de garantía
+    deposit: (solicitud.property?.monthly_price || 0) * 2,
     payment_day: 1,
     late_fee: 50,
     special_conditions: ""
   };
 
-  utilitiesInput.value = "";
-  clausesInput.value = "";
+  utilitiesInput.value = "Agua, Luz, Gas";
+  
+  // ✅ Pre-llenar cláusulas por defecto
+  clausesInput.value = `El arrendatario se compromete a pagar el canon de arrendamiento en la fecha establecida.
+El arrendatario debe mantener el inmueble en buen estado.
+El arrendador debe garantizar el goce pacífico del inmueble.
+Cualquier modificación al contrato debe hacerse por escrito.
+El incumplimiento de las obligaciones podrá dar lugar a la terminación del contrato.`;
+  
   showContractModal.value = true;
 };
 
@@ -459,6 +467,7 @@ const closeContractModal = () => {
   selectedRequest.value = null;
 };
 
+// ENVIAR CONTRATO
 // ENVIAR CONTRATO
 const enviarContrato = async () => {
   if (!contractData.value.start_date || !contractData.value.end_date) {
@@ -478,10 +487,22 @@ const enviarContrato = async () => {
       .map(u => u.trim())
       .filter(u => u.length > 0);
 
-    const clauses = clausesInput.value
+    // ✅ CORRECCIÓN: Si no hay cláusulas, usar las por defecto
+    let clauses = clausesInput.value
       .split("\n")
       .map(c => c.trim())
       .filter(c => c.length > 0);
+
+    // Si el array está vacío, agregar cláusulas por defecto
+    if (clauses.length === 0) {
+      clauses = [
+        "El arrendatario se compromete a pagar el canon de arrendamiento en la fecha establecida.",
+        "El arrendatario debe mantener el inmueble en buen estado.",
+        "El arrendador debe garantizar el goce pacífico del inmueble.",
+        "Cualquier modificación al contrato debe hacerse por escrito.",
+        "El incumplimiento de las obligaciones podrá dar lugar a la terminación del contrato."
+      ];
+    }
 
     const payload = {
       rental_request_id: selectedRequest.value.id,
@@ -492,12 +513,14 @@ const enviarContrato = async () => {
       end_date: contractData.value.end_date,
       monthly_price: parseFloat(contractData.value.monthly_price),
       deposit: parseFloat(contractData.value.deposit),
-      clauses: clauses,
+      clauses: clauses, // ✅ Ahora siempre tiene al menos las cláusulas por defecto
       payment_day: parseInt(contractData.value.payment_day),
       late_fee: parseFloat(contractData.value.late_fee),
       utilities_included: utilities,
-      special_conditions: contractData.value.special_conditions
+      special_conditions: contractData.value.special_conditions || ""
     };
+
+    console.log("Payload enviado:", payload); // ← Para debugging
 
     await rentalRequestService.sendContractTerms(payload);
     alert("Contrato enviado correctamente al inquilino");
@@ -505,7 +528,16 @@ const enviarContrato = async () => {
     await loadRequests();
   } catch (error) {
     console.error("Error enviando contrato:", error);
-    alert("Error al enviar el contrato");
+    
+    // ✅ Mostrar el error específico del backend
+    if (error.response?.data?.message) {
+      alert(`Error: ${error.response.data.message}`);
+    } else if (error.response?.data?.errors) {
+      const errors = Object.values(error.response.data.errors).flat();
+      alert(`Errores de validación:\n${errors.join('\n')}`);
+    } else {
+      alert("Error al enviar el contrato");
+    }
   }
 };
 
