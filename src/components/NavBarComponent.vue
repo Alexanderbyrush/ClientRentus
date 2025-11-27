@@ -17,13 +17,8 @@
     </button>
 
     <!-- Si está logueado -->
-    <div
-      v-else
-      class="user-box"
-      id="userToggle"
-      @click="toggleUserDropdown"
-      style="cursor: pointer; position: relative"
-    >
+    <div v-else class="user-box" id="userToggle" @click="toggleUserDropdown"
+      style="cursor: pointer; position: relative">
       <img v-if="profilePhoto" :src="profilePhoto" alt="Usuario" class="user-img" />
       <img v-else src="/img/default.webp" alt="Usuario" class="user-img" />
 
@@ -31,12 +26,7 @@
       <span class="user-arrow">▾</span>
 
       <!-- Dropdown -->
-      <div
-        class="user-dropdown"
-        :class="{ show: showDropdown }"
-        id="userDropdown"
-        @click.stop
-      >
+      <div class="user-dropdown" :class="{ show: showDropdown }" id="userDropdown" @click.stop>
         <div @click="goPerfil" class="dropdown-item">
           <img src="https://img.icons8.com/ios-filled/20/user.png" alt="Perfil" />
           Perfil
@@ -59,13 +49,19 @@
 
         <div @click="openSolicitudesModal" class="dropdown-item">
           <img src="https://img.icons8.com/ios-filled/20/document--v1.png" alt="Solicitudes" />
-          Solicitudes
+          Solicitudes (Dueño)
+        </div>
+
+        <!-- NUEVO: Para inquilinos -->
+        <div @click="openMyRequestsModalFn" class="dropdown-item">
+          <img src="https://img.icons8.com/ios-filled/20/calendar--v1.png" alt="Mis Solicitudes" />
+          Mis Solicitudes
         </div>
 
         <div @click="openNotificaciones" class="dropdown-item">
           <img src="https://img.icons8.com/ios-filled/20/appointment-reminders--v1.png" alt="Notificaciones" />
           Notificaciones
-          <span class="notif-badge">3</span>
+          <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
         </div>
 
         <div @click="goAjustes" class="dropdown-item">
@@ -87,22 +83,15 @@
   </router-view>
 
   <!-- MODAL DE MANTENIMIENTO -->
-  <MaintenanceModal 
-    :is-visible="showMaintenanceModal"
-    @close="showMaintenanceModal = false"
-    @submitted="handleMaintenanceSubmitted"
-  />
+  <MaintenanceModal :is-visible="showMaintenanceModal" @close="showMaintenanceModal = false"
+    @submitted="handleMaintenanceSubmitted" />
 
   <!-- MODAL DE SOLICITUDES -->
-  <RequestsView
-    :open="showRequestModal"
-    @close="showRequestModal = false"
-  />
+  <RequestsView :open="showRequestModal" @close="showRequestModal = false" />
 
-  <NotificationsView
-    :open="showNotificaciontModal"
-    @close="showNotificaciontModal = false"
-  />
+  <NotificationsView :open="showNotificaciontModal" @close="showNotificaciontModal = false" />
+
+  <MyRequestsModal :open="showMyRequestsModal" @close="showMyRequestsModal = false" />
 
 </template>
 
@@ -110,10 +99,12 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import api from "@/services/api";
+import { notificationService } from "@/services/notificationService";
 import MaintenanceModal from '@/components/modals/Maintenance/MaintenanceModal.vue'
 import RequestsView from "./modals/ModalRequest/RequestsView.vue";
 import NotificationsView from "./modals/Notifications/NotificationsView.vue";
-import { eventBus, EVENTS } from '@/services/eventBus'; // ⭐ Importar EventBus
+import MyRequestsModal from "./modals/ModalRequest/MyRequestsModal.vue";
+import { eventBus, EVENTS } from '@/services/eventBus';
 
 const router = useRouter();
 const isLoggedIn = ref(false);
@@ -124,6 +115,29 @@ const profilePhoto = ref("");
 const showMaintenanceModal = ref(false)
 const showRequestModal = ref(false)
 const showNotificaciontModal = ref(false)
+const showMyRequestsModal = ref(false)
+const unreadCount = ref(0)
+
+// Cargar contador de notificaciones
+const loadUnreadCount = async () => {
+  try {
+    const response = await notificationService.getUnreadCount();
+    unreadCount.value = response.count;
+  } catch (error) {
+    console.error("Error cargando contador:", error);
+  }
+};
+
+// Manejar actualizaciones desde el modal de notificaciones
+const handleNotificationUpdate = (event) => {
+  if (event.action === "refresh_count") {
+    loadUnreadCount();
+  } else if (event.action === "open_requests") {
+    showRequestModal.value = true;
+  } else if (event.action === "open_my_requests") {
+    showMyRequestsModal.value = true;
+  }
+};
 
 const openMaintenanceModal = () => {
   showMaintenanceModal.value = true
@@ -136,6 +150,11 @@ const handleMaintenanceSubmitted = (data) => {
 
 const openSolicitudesModal = () => {
   showRequestModal.value = true
+  showDropdown.value = false
+}
+
+const openMyRequestsModalFn = () => {
+  showMyRequestsModal.value = true
   showDropdown.value = false
 }
 
@@ -166,7 +185,6 @@ async function fetchUserData() {
       firstName.value = firstName.value.slice(0, 10) + "...";
     }
 
-    // ⭐ Cambiar de profile_photo a photo
     profilePhoto.value = user.photo || "";
     localStorage.setItem("user", JSON.stringify(user));
   } catch (error) {
@@ -194,7 +212,6 @@ const goAjustes = () => {
   router.push("/ajustes");
   showDropdown.value = false;
 };
-
 
 const toggleUserDropdown = () => {
   showDropdown.value = !showDropdown.value;
@@ -224,11 +241,9 @@ function handleClickOutsideDropdown(event) {
   }
 }
 
-// ⭐ Función para actualizar la foto desde el EventBus
 const handlePhotoUpdate = (newPhoto) => {
   profilePhoto.value = newPhoto;
-  
-  // Actualizar también en localStorage
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   user.photo = newPhoto;
   localStorage.setItem("user", JSON.stringify(user));
@@ -237,16 +252,21 @@ const handlePhotoUpdate = (newPhoto) => {
 // Lifecycle hooks
 onMounted(async () => {
   await fetchUserData();
+  await loadUnreadCount();
   document.addEventListener("click", handleClickOutsideDropdown);
-  
-  // ⭐ Escuchar cambios en la foto de perfil
+
   eventBus.on(EVENTS.PROFILE_PHOTO_UPDATED, handlePhotoUpdate);
+
+  // Actualizar contador cada 30 segundos
+  setInterval(() => {
+    if (isLoggedIn.value) {
+      loadUnreadCount();
+    }
+  }, 30000);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutsideDropdown);
-  
-  // ⭐ Limpiar listener del EventBus
   eventBus.off(EVENTS.PROFILE_PHOTO_UPDATED, handlePhotoUpdate);
 });
 </script>
@@ -378,7 +398,7 @@ onBeforeUnmount(() => {
   transition: transform 0.3s ease;
 }
 
-.user-dropdown.show + .user-arrow {
+.user-dropdown.show+.user-arrow {
   transform: rotate(180deg);
 }
 
@@ -407,6 +427,7 @@ onBeforeUnmount(() => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -490,24 +511,24 @@ onBeforeUnmount(() => {
   .property-header {
     padding: 1rem;
   }
-  
+
   .property-nav {
     gap: 1rem;
   }
-  
+
   .nav-link {
     padding: 0.4rem 0.8rem;
     font-size: 0.9rem;
   }
-  
+
   .logo-text {
     font-size: 1.2rem;
   }
-  
+
   .user-info {
     display: none;
   }
-  
+
   .user-dropdown {
     min-width: 200px;
     right: -1rem;
@@ -518,16 +539,16 @@ onBeforeUnmount(() => {
   .property-nav {
     gap: 0.5rem;
   }
-  
+
   .nav-link {
     padding: 0.3rem 0.6rem;
     font-size: 0.8rem;
   }
-  
+
   .logo img {
     height: 32px;
   }
-  
+
   .logo-text {
     font-size: 1rem;
   }
