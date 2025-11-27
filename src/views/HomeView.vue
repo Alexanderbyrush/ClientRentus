@@ -117,14 +117,14 @@
         <div v-else-if="displayedProperties.length > 0" class="properties-grid">
           <div v-for="property in displayedProperties" :key="property.id" class="property-card"
             :class="{ 'featured-card': property.featured }">
-            <!-- Badge destacado -->
-            <div v-if="property.featured" class="property-badge">
-              ⭐ Propiedad Exclusiva
-            </div>
-
-            <!-- Badge de estado CORREGIDO -->
+            <!-- Badge de estado CORREGIDO - Posición superior izquierda -->
             <div class="property-status-badge" :class="property.status">
               {{ getStatusText(property.status) }}
+            </div>
+
+            <!-- Badge destacado - Posición superior derecha -->
+            <div v-if="property.featured" class="property-badge">
+              ⭐ Propiedad Exclusiva
             </div>
 
             <!-- Imagen de la propiedad -->
@@ -136,7 +136,7 @@
                 <div class="placeholder-subtext">{{ property.title }}</div>
               </div>
               
-              <!-- Overlay de acciones MEJORADO -->
+              <!-- Overlay de acciones - Botones como estaban originalmente -->
               <div class="property-overlay">
                 <div class="property-actions">
                   <button class="action-btn fav-btn" @click.stop="toggleFavorite(property)"
@@ -771,26 +771,11 @@ onMounted(fetchAllData);
   border: 2px solid #e67e22;
 }
 
-/* Badge destacado */
-.property-badge {
-  position: absolute;
-  top: 1.2rem;
-  left: 1.2rem;
-  background: linear-gradient(45deg, #e67e22, #f39c12);
-  color: white;
-  padding: 0.6rem 1.2rem;
-  border-radius: 25px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  z-index: 15;
-  box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3);
-}
-
-/* BADGE DE ESTADO MEJORADO - COLORES SEGÚN ESTADO */
+/* BADGE DE ESTADO MEJORADO - POSICIÓN SUPERIOR IZQUIERDA CON COLORES */
 .property-status-badge {
   position: absolute;
   top: 1.2rem;
-  right: 1.2rem;
+  left: 1.2rem;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
@@ -826,6 +811,21 @@ onMounted(fetchAllData);
 .property-status-badge.maintenance {
   background: rgba(243, 156, 18, 0.95);
   box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+}
+
+/* Badge destacado - Posición superior derecha */
+.property-badge {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  background: linear-gradient(45deg, #e67e22, #f39c12);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 25px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 15;
+  box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3);
 }
 
 /* Imagen de propiedad */
@@ -872,7 +872,7 @@ onMounted(fetchAllData);
   opacity: 0.8;
 }
 
-/* BOTONES DE ACCIÓN MEJORADOS - SIN SUPERPOSICIÓN */
+/* Overlay de acciones - BOTONES COMO ESTABAN ORIGINALMENTE */
 .property-overlay {
   position: absolute;
   top: 0;
@@ -896,10 +896,6 @@ onMounted(fetchAllData);
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;
-  position: absolute;
-  top: 1.2rem;
-  right: 1.2rem;
-  z-index: 20;
 }
 
 .action-btn {
@@ -915,30 +911,18 @@ onMounted(fetchAllData);
   transition: all 0.3s ease;
   font-size: 1.1rem;
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
-
-/* Asegurar que no haya superposición entre botones */
-.action-btn:nth-child(1) { transform: translateX(0); }
-.action-btn:nth-child(2) { transform: translateX(-48px); }
-.action-btn:nth-child(3) { transform: translateX(-96px); }
 
 .action-btn:hover {
   background: white;
-  transform: scale(1.15) !important;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-  z-index: 25;
+  transform: scale(1.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .fav-btn.active {
   background: #e74c3c;
   color: white;
-}
-
-/* Ajuste para tarjetas destacadas */
-.featured-card .property-actions {
-  top: 4rem;
 }
 
 /* Contenido de la propiedad mejorado */
@@ -1876,29 +1860,7 @@ onMounted(fetchAllData);
   opacity: 0.9;
 }
 
-/* Responsive adjustments para botones */
-@media (max-width: 768px) {
-  .property-actions {
-    gap: 0.4rem;
-    top: 1rem;
-    right: 1rem;
-  }
-  
-  .action-btn {
-    width: 38px;
-    height: 38px;
-    font-size: 1rem;
-  }
-  
-  .action-btn:nth-child(2) { transform: translateX(-44px); }
-  .action-btn:nth-child(3) { transform: translateX(-88px); }
-  
-  .featured-card .property-actions {
-    top: 3.5rem;
-  }
-}
-
-/* Responsive general */
+/* Responsive */
 @media (max-width: 1024px) {
   .search-bar {
     grid-template-columns: 1fr 1fr;
