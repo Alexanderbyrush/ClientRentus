@@ -135,7 +135,7 @@
                 <div class="placeholder-text">Imagen de la propiedad</div>
                 <div class="placeholder-subtext">{{ property.title }}</div>
               </div>
-              
+
               <!-- Overlay de acciones - Botones como estaban originalmente -->
               <div class="property-overlay">
                 <div class="property-actions">
@@ -223,7 +223,7 @@
         <div v-if="!loadingProperties && filteredProperties.length > PROPERTIES_LIMIT" class="view-more-section">
           <div class="results-info">
             <p class="properties-count">
-              Visualizando <strong>{{ displayedProperties.length }}</strong> de 
+              Visualizando <strong>{{ displayedProperties.length }}</strong> de
               <strong>{{ filteredProperties.length }}</strong> propiedades encontradas
             </p>
             <p class="results-note">¿No encuentras lo que buscas?</p>
@@ -335,9 +335,7 @@
         <div v-if="selectedProperty.lat && selectedProperty.lng" class="location-section">
           <div class="section-header">
             <h3 class="section-title">📍 Ubicación Exacta</h3>
-            <router-link 
-              :to="{ name: 'MapView', params: { id: selectedProperty.id } }" 
-              class="btn-map-preview"
+            <router-link :to="{ name: 'MapView', params: { id: selectedProperty.id } }" class="btn-map-preview"
               @click="closeModal">
               <span class="btn-icon">🗺️</span>
               <span class="btn-text">Ver en Mapa Completo</span>
@@ -363,11 +361,12 @@
         <!-- Acciones del modal -->
         <div class="modal-actions">
           <!-- Solo mostrar si NO es el dueño y la propiedad está disponible -->
-          <button v-if="selectedProperty.status === 'available'"
-            class="btn-request-visit" @click="contactAgent(selectedProperty)">
+          <button v-if="authUser?.id !== selectedProperty.user_id && selectedProperty.status === 'available'"
+            class="btn-request-visit" @click="openRequestVisitModal(selectedProperty)">
             <span class="btn-icon">📅</span>
             <span class="btn-text">Solicitar Cita de Visita</span>
           </button>
+
 
           <!-- Si no está disponible -->
           <div v-else-if="selectedProperty.status !== 'available'" class="unavailable-notice">
@@ -382,12 +381,16 @@
       </div>
     </div>
 
+    <RequestVisitModal :open="showRequestModal" :property="propertyForRequest" @close="showRequestModal = false"
+      @success="handleRequestSuccess" />
+
     <FooterComponent />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
+import RequestVisitModal from "@/components/RequestVisitModal.vue";
 import NavBarComponent from "@/components/NavBarComponent.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
 import { useRouter } from "vue-router";
@@ -398,6 +401,23 @@ const router = useRouter();
 
 // Estados
 const properties = ref([]);
+const selectedProperty = ref(null);
+
+// Para la solicitud de visitas
+const propertyForRequest = ref(null);
+const showRequestModal = ref(false);
+
+
+
+const openRequestVisitModal = (property) => {
+  if (!property) return;
+  propertyForRequest.value = property;
+  showRequestModal.value = true;
+  closeModal();
+};
+
+
+
 const loadingProperties = ref(false);
 const errorProperties = ref(null);
 const activeClientsCount = ref(0);
@@ -406,7 +426,6 @@ const PROPERTIES_LIMIT = 4;
 
 // Estados para el modal
 const modalOpen = ref(false);
-const selectedProperty = ref({});
 const fallbackImage = "https://via.placeholder.com/400x300?text=Sin+Imagen";
 
 // Filtros y búsqueda
@@ -487,7 +506,7 @@ const timeAgo = (dateString) => {
   const now = new Date();
   const diffInMs = now - date;
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffInDays === 0) return 'hoy';
   if (diffInDays === 1) return 'ayer';
   if (diffInDays < 7) return `hace ${diffInDays} días`;
@@ -557,10 +576,10 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString("es-ES", options);
 }
 function getStatusText(status) {
-  const map = { 
-    available: "Disponible", 
-    reserved: "Reservada", 
-    sold: "Vendida", 
+  const map = {
+    available: "Disponible",
+    reserved: "Reservada",
+    sold: "Vendida",
     rented: "Arrendada",
     maintenance: "En mantenimiento"
   };
@@ -581,7 +600,7 @@ function goToProperties() { router.push("/propiedades"); }
 function toggleFavorite(property) { property.is_favorite = !property.is_favorite; }
 function addToCompare(property) { console.log("Comparar", property.title); }
 function shareProperty(property) { console.log("Compartir", property.title); }
-function contactAgent(property) { 
+function contactAgent(property) {
   console.log("Contactar", property.title);
   closeModal();
 }
@@ -1237,7 +1256,7 @@ onMounted(fetchAllData);
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   margin-top: 4px;
 }
 
@@ -1391,8 +1410,13 @@ onMounted(fetchAllData);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-box {
@@ -1414,6 +1438,7 @@ onMounted(fetchAllData);
     opacity: 0;
     transform: translateY(30px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1866,7 +1891,7 @@ onMounted(fetchAllData);
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
   }
-  
+
   .properties-grid {
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 2rem;
@@ -1891,110 +1916,110 @@ onMounted(fetchAllData);
   .section-title {
     font-size: 2.2rem;
   }
-  
+
   .search-bar {
     grid-template-columns: 1fr;
     padding: 1rem;
   }
-  
+
   .properties-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   .property-features {
     grid-template-columns: 1fr;
   }
-  
+
   .property-footer {
     flex-direction: column;
   }
-  
+
   .property-header {
     flex-direction: column;
   }
-  
+
   .property-price {
     margin-left: 0;
     margin-top: 0.5rem;
     text-align: left;
   }
-  
+
   .property-meta {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .hero-text h1 {
     font-size: 2rem;
   }
-  
+
   .property-hero-stats {
     flex-direction: column;
     gap: 1.5rem;
   }
-  
+
   .stat-item:not(:last-child) {
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     padding-bottom: 1.5rem;
   }
-  
+
   .modal-box {
     max-height: 95vh;
     margin: 1rem;
   }
-  
+
   .modal-header {
     padding: 2rem 1.5rem 1rem;
   }
-  
+
   .modal-title {
     font-size: 1.6rem;
   }
-  
+
   .price-amount {
     font-size: 2rem;
   }
-  
+
   .modal-gallery {
     margin: 0 1.5rem;
     margin-top: -1.5rem;
   }
-  
+
   .modal-main-image {
     height: 250px;
   }
-  
+
   .modal-details-grid {
     grid-template-columns: 1fr;
     padding: 1.5rem;
     gap: 1rem;
   }
-  
+
   .description-section,
   .location-section,
   .modal-actions {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
-  
+
   .coordinates-display {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .btn-map-preview {
     align-self: stretch;
     justify-content: center;
   }
-  
+
   .no-location-section {
     margin-left: 1.5rem;
     margin-right: 1.5rem;
@@ -2005,44 +2030,44 @@ onMounted(fetchAllData);
   .properties-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .property-card {
     margin: 0 0.5rem;
   }
-  
+
   .property-content {
     padding: 1.5rem;
   }
-  
+
   .property-hero {
     padding: 2rem 1rem 6rem;
   }
-  
+
   .hero-text h1 {
     font-size: 1.8rem;
   }
-  
+
   .stat-number {
     font-size: 2rem;
   }
-  
+
   .modal-box {
     margin: 0.5rem;
   }
-  
+
   .modal-header {
     padding: 1.5rem 1rem 1rem;
   }
-  
+
   .modal-title {
     font-size: 1.4rem;
   }
-  
+
   .modal-gallery {
     margin: 0 1rem;
     margin-top: -1rem;
   }
-  
+
   .modal-main-image {
     height: 200px;
   }

@@ -9,15 +9,15 @@
     <nav class="navigation-section">
       <div class="nav-links">
         <router-link to="/" class="nav-link" active-class="active" exact>
-          <span class="nav-icon">🏠</span>
+        
           <span class="nav-text">Inicio</span>
         </router-link>
         <router-link to="/propiedades" class="nav-link" active-class="active">
-          <span class="nav-icon">🏘️</span>
+         
           <span class="nav-text">Propiedades</span>
         </router-link>
         <router-link to="/sobre-nosotros" class="nav-link" active-class="active">
-          <span class="nav-icon">👥</span>
+          
           <span class="nav-text">Nosotros</span>
         </router-link>
       </div>
