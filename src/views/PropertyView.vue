@@ -137,11 +137,31 @@
 
         <p><strong>Fecha publicación:</strong> {{ selectedProperty.publication_date }}</p>
 
-        <p><strong>Latitud:</strong> {{ selectedProperty.lat }}</p>
-        <p><strong>Longitud:</strong> {{ selectedProperty.lng }}</p>
+        <!-- Mostrar coordenadas solo si existen -->
+        <div v-if="selectedProperty.lat && selectedProperty.lng" class="coordinates-section">
+          <p><strong>📍 Ubicación:</strong></p>
+          <p class="coordinates-text">
+            <span>Lat: {{ Number(selectedProperty.lat).toFixed(6) }}</span>
+            <span>Lng: {{ Number(selectedProperty.lng).toFixed(6) }}</span>
+          </p>
+        </div>
+
+        <!-- Botón para ver en mapa -->
+        <router-link 
+          v-if="selectedProperty.lat && selectedProperty.lng"
+          :to="{ name: 'MapView', params: { id: selectedProperty.id } }" 
+          class="btn-map"
+          @click="closeModal">
+          🗺️ Ver en Mapa
+        </router-link>
+        
+        <p v-else class="no-location-notice">
+          ℹ️ Esta propiedad aún no tiene ubicación registrada
+        </p>
+
       </div>
 
-      <!-- NUEVO: Botón de Solicitar Cita -->
+      <!-- Botón de Solicitar Cita -->
       <div class="modal-actions">
         <!-- Solo mostrar si NO es el dueño y la propiedad está disponible -->
         <button v-if="authUser?.id !== selectedProperty.user_id && selectedProperty.status === 'available'"
@@ -194,7 +214,7 @@ const filters = ref({
 const modalOpen = ref(false);
 const selectedProperty = ref({});
 
-// NUEVO: Estado para el modal de solicitud de cita
+// Estado para el modal de solicitud de cita
 const showRequestModal = ref(false);
 const propertyForRequest = ref(null);
 
@@ -210,14 +230,14 @@ const closeModal = () => {
   document.body.classList.remove("modal-open");
 };
 
-// NUEVO: Abrir modal de solicitud de cita
+// Abrir modal de solicitud de cita
 const openRequestVisitModal = (property) => {
   propertyForRequest.value = property;
   showRequestModal.value = true;
   closeModal(); // Cierra el modal de detalles
 };
 
-// NUEVO: Manejar éxito de solicitud
+// Manejar éxito de solicitud
 const handleRequestSuccess = () => {
   showRequestModal.value = false;
   propertyForRequest.value = null;
@@ -667,7 +687,6 @@ h1.title-page {
 
 .modal-box {
   background: #eedadac2;
-  /* Se mantiene consistente con cards */
   border: 3px solid var(--color-border-accent);
   border-radius: 14px;
   max-width: 680px;
@@ -678,7 +697,6 @@ h1.title-page {
   position: relative;
   animation: modalFade 0.28s ease;
   overflow-y: auto;
-  /* Scroll interno controlado */
 }
 
 @keyframes modalFade {
@@ -732,5 +750,64 @@ h1.title-page {
   font-size: 1rem;
   margin-bottom: 0.5rem;
   opacity: 0.92;
+}
+
+/* NUEVOS ESTILOS PARA LA SECCIÓN DE COORDENADAS Y BOTÓN DE MAPA */
+.coordinates-section {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 16px;
+  border-radius: 10px;
+  margin: 16px 0;
+  border-left: 4px solid #3498db;
+}
+
+.coordinates-text {
+  display: flex;
+  gap: 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  margin-top: 8px;
+  color: #2c3e50;
+}
+
+.coordinates-text span {
+  background: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-map {
+  display: inline-block;
+  width: 100%;
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+  color: white;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  margin-top: 16px;
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-map:hover {
+  background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.no-location-notice {
+  background: #fff3cd;
+  color: #856404;
+  padding: 14px 18px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  border-left: 4px solid #ffc107;
+  margin-top: 16px;
 }
 </style>
