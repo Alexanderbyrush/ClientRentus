@@ -59,7 +59,7 @@
 
         <div v-for="p in filteredProperties" :key="p.id" class="property-card">
 
-          <img :src="p.image_url || fallbackImage" class="property-image" @error="onImgError" />
+          <PropertyImage :src="p.image_url" :alt="p.title" />
 
           <div class="property-body">
 
@@ -107,6 +107,7 @@
 
   </div>
   <!-- MODAL -->
+  <!-- MODAL DE DETALLES -->
   <div v-if="modalOpen" class="modal-backdrop">
     <div class="modal-box">
 
@@ -139,8 +140,33 @@
         <p><strong>Latitud:</strong> {{ selectedProperty.lat }}</p>
         <p><strong>Longitud:</strong> {{ selectedProperty.lng }}</p>
       </div>
+
+      <!-- NUEVO: Botón de Solicitar Cita -->
+      <div class="modal-actions">
+        <!-- Solo mostrar si NO es el dueño y la propiedad está disponible -->
+        <button v-if="authUser?.id !== selectedProperty.user_id && selectedProperty.status === 'available'"
+          class="btn-request-visit" @click="openRequestVisitModal(selectedProperty)">
+          📅 Solicitar Cita de Visita
+        </button>
+
+        <!-- Si es el dueño -->
+        <p v-else-if="authUser?.id === selectedProperty.user_id" class="owner-notice">
+          Esta es tu propiedad
+        </p>
+
+        <!-- Si no está disponible -->
+        <p v-else-if="selectedProperty.status !== 'available'" class="unavailable-notice">
+          Esta propiedad no está disponible actualmente
+        </p>
+      </div>
+
     </div>
   </div>
+
+  <!-- MODAL DE SOLICITUD DE CITA -->
+  <RequestVisitModal :open="showRequestModal" :property="propertyForRequest" @close="showRequestModal = false"
+    @success="handleRequestSuccess" />
+
   <FooterComponent />
 </template>
 
@@ -151,8 +177,10 @@ import { ref, computed, onMounted } from "vue";
 import api from "@/services/api";
 import NavBarComponent from "@/components/NavBarComponent.vue";
 import FooterComponent from "@/components/FooterComponent.vue";
+import RequestVisitModal from "@/components/RequestVisitModal.vue";
+import PropertyImage from "@/components/PropertyImage.vue";
 
-const authUser = ref({});
+const authUser = ref(null);
 const properties = ref([]);
 const fallbackImage = "https://via.placeholder.com/400x300?text=Sin+Imagen";
 
@@ -166,18 +194,48 @@ const filters = ref({
 const modalOpen = ref(false);
 const selectedProperty = ref({});
 
+// NUEVO: Estado para el modal de solicitud de cita
+const showRequestModal = ref(false);
+const propertyForRequest = ref(null);
+
 const openModal = (property) => {
   selectedProperty.value = { ...property };
   modalOpen.value = true;
-  document.body.classList.add("modal-open"); // Bloquea scroll
+  document.body.classList.add("modal-open");
 };
 
 const closeModal = () => {
   modalOpen.value = false;
   selectedProperty.value = {};
-  document.body.classList.remove("modal-open"); // Restaura scroll
+  document.body.classList.remove("modal-open");
 };
 
+// NUEVO: Abrir modal de solicitud de cita
+const openRequestVisitModal = (property) => {
+  propertyForRequest.value = property;
+  showRequestModal.value = true;
+  closeModal(); // Cierra el modal de detalles
+};
+
+// NUEVO: Manejar éxito de solicitud
+const handleRequestSuccess = () => {
+  showRequestModal.value = false;
+  propertyForRequest.value = null;
+  alert("¡Solicitud enviada exitosamente! El dueño recibirá tu petición.");
+};
+
+// CARGAR USUARIO AUTENTICADO
+const loadAuthUser = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { data } = await api.get("/auth/me");
+      authUser.value = data;
+    }
+  } catch (err) {
+    console.error("Error cargando usuario:", err);
+  }
+};
 
 // CARGAR PROPIEDADES
 const loadProperties = async () => {
@@ -189,7 +247,10 @@ const loadProperties = async () => {
   }
 };
 
-onMounted(() => loadProperties());
+onMounted(async () => {
+  await loadAuthUser();
+  await loadProperties();
+});
 
 // MANEJO DE ERROR EN IMAGEN
 const onImgError = (event) => {
@@ -233,12 +294,7 @@ const filteredProperties = computed(() => {
       !filters.value.type || filters.value.type === typeFromTitle;
 
     const rawMax = filters.value.maxPrice;
-
-    const matchPrice =
-      !rawMax || Number(p.monthly_price) <= rawMax;
-
-
-
+    const matchPrice = !rawMax || Number(p.monthly_price) <= rawMax;
 
     return matchSearch && matchCity && matchType && matchPrice;
   });
@@ -263,6 +319,7 @@ const deleteProperty = async (id) => {
   }
 };
 </script>
+
 <style scoped>
 /* --- Bloqueo de scroll cuando el modal está abierto --- */
 :global(body.modal-open) {
@@ -490,6 +547,74 @@ h1.title-page {
   text-align: center;
   text-decoration: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Modal Actions */
+.modal-actions {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 2px solid #e0e0e0;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-request-visit {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-request-visit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+  background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
+}
+
+.btn-request-visit:active {
+  transform: translateY(0);
+}
+
+.owner-notice {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+  border-left: 4px solid #2196f3;
+}
+
+.unavailable-notice {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+  border-left: 4px solid #ffc107;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .btn-request-visit {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 
