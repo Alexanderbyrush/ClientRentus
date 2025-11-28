@@ -63,8 +63,10 @@
               <input v-model="servicesText" @blur="parseServices" type="text" placeholder="agua, luz, gas"
                 class="input" />
             </div>
-            <input type="date" v-model="form.publication_date" class="input" />
-
+            <div>
+              <label class="block mb-2">Fecha de publicación</label>
+              <input type="date" v-model="form.publication_date" class="input" />
+            </div>
 
             <div>
               <label class="block mb-2">Latitud</label>
