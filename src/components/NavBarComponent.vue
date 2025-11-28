@@ -5,30 +5,73 @@
       <div class="logo-text"><strong>Rent</strong><span>Us</span></div>
     </div>
 
-    <!-- Barra de navegación actualizada -->
-    <nav class="navigation-section">
+    <!-- Hamburger menu button -->
+    <button 
+      class="hamburger-btn" 
+      @click="toggleMobileMenu"
+      :class="{ active: showMobileMenu }"
+      aria-label="Menu"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <!-- Barra de navegación con menú móvil -->
+    <nav class="navigation-section" :class="{ 'mobile-active': showMobileMenu }">
       <div class="nav-links">
-        <router-link to="/" class="nav-link" active-class="active" exact>
+        <router-link 
+          to="/" 
+          class="nav-link" 
+          active-class="active" 
+          exact
+          @click="closeMobileMenu"
+        >
           <span class="nav-icon">🏠</span>
           <span class="nav-text">Inicio</span>
         </router-link>
-        <router-link to="/propiedades" class="nav-link" active-class="active">
-          <span class="nav-icon">🏘️</span>
+        <router-link 
+          to="/propiedades" 
+          class="nav-link" 
+          active-class="active"
+          @click="closeMobileMenu"
+        >
+          <span class="nav-icon">🏢</span>
           <span class="nav-text">Propiedades</span>
         </router-link>
-        <router-link to="/sobre-nosotros" class="nav-link" active-class="active">
+        <router-link 
+          to="/sobre-nosotros" 
+          class="nav-link" 
+          active-class="active"
+          @click="closeMobileMenu"
+        >
           <span class="nav-icon">👥</span>
           <span class="nav-text">Nosotros</span>
         </router-link>
       </div>
+
+      <!-- Login button en menú móvil -->
+      <button 
+        v-if="!isLoggedIn" 
+        @click="goLogin" 
+        class="login-btn mobile-login-btn" 
+        type="button"
+      >
+        Iniciar Sesión
+      </button>
     </nav>
 
-    <!-- Si no está logueado -->
-    <button v-if="!isLoggedIn" @click="goLogin" class="login-btn" type="button">
+    <!-- Login button desktop -->
+    <button 
+      v-if="!isLoggedIn" 
+      @click="goLogin" 
+      class="login-btn desktop-login-btn" 
+      type="button"
+    >
       Iniciar Sesión
     </button>
 
-    <!-- Si está logueado - Dropdown actualizado -->
+    <!-- Si está logueado - Dropdown -->
     <div v-else class="user-profile" id="userToggle" @click="toggleUserDropdown">
       <div class="user-avatar">
         <img v-if="profilePhoto" :src="profilePhoto" alt="Usuario" class="avatar-img" />
@@ -47,7 +90,7 @@
         </svg>
       </div>
 
-      <!-- Dropdown Menu actualizado -->
+      <!-- Dropdown Menu -->
       <transition name="dropdown-fade">
         <div v-if="showDropdown" class="user-dropdown-menu" @click.stop>
           <div class="dropdown-header">
@@ -152,6 +195,7 @@ import { eventBus, EVENTS } from '@/services/eventBus';
 const router = useRouter();
 const isLoggedIn = ref(false);
 const showDropdown = ref(false);
+const showMobileMenu = ref(false);
 const fullName = ref("Usuario");
 const firstName = ref("Usuario");
 const profilePhoto = ref("");
@@ -160,6 +204,15 @@ const showRequestModal = ref(false)
 const showNotificaciontModal = ref(false)
 const showMyRequestsModal = ref(false)
 const unreadCount = ref(0)
+
+// Toggle mobile menu
+const toggleMobileMenu = () => {
+  showMobileMenu.value = !showMobileMenu.value;
+};
+
+const closeMobileMenu = () => {
+  showMobileMenu.value = false;
+};
 
 // Cargar contador de notificaciones
 const loadUnreadCount = async () => {
@@ -237,20 +290,31 @@ async function fetchUserData() {
 }
 
 // Funciones de navegación
-const goHome = () => router.push("/");
-const goLogin = () => router.push("/login");
+const goHome = () => {
+  router.push("/");
+  closeMobileMenu();
+};
+
+const goLogin = () => {
+  router.push("/login");
+  closeMobileMenu();
+};
+
 const goPerfil = () => {
   router.push('/perfil');
   showDropdown.value = false;
 };
+
 const goContratos = () => {
   router.push("/contratos");
   showDropdown.value = false;
 };
+
 const goPagos = () => {
   router.push("/pagos");
   showDropdown.value = false;
 };
+
 const goAjustes = () => {
   router.push("/ajustes");
   showDropdown.value = false;
@@ -272,6 +336,8 @@ const logout = () => {
 function handleClickOutsideDropdown(event) {
   const userMenu = document.getElementById("userToggle");
   const dropdown = document.querySelector(".user-dropdown-menu");
+  const hamburger = document.querySelector(".hamburger-btn");
+  const mobileNav = document.querySelector(".navigation-section");
 
   if (!userMenu || !dropdown) return;
 
@@ -281,6 +347,17 @@ function handleClickOutsideDropdown(event) {
     showDropdown.value
   ) {
     showDropdown.value = false;
+  }
+
+  // Cerrar menú móvil al hacer clic fuera
+  if (
+    hamburger &&
+    mobileNav &&
+    !hamburger.contains(event.target) &&
+    !mobileNav.contains(event.target) &&
+    showMobileMenu.value
+  ) {
+    showMobileMenu.value = false;
   }
 }
 
@@ -335,6 +412,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.5rem;
   color: white;
+  z-index: 1002;
 }
 
 .logo img {
@@ -355,10 +433,49 @@ onBeforeUnmount(() => {
   color: #da9c5f;
 }
 
-/* Barra de navegación actualizada */
+/* Hamburger Menu */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1002;
+  position: relative;
+}
+
+.hamburger-btn span {
+  width: 100%;
+  height: 3px;
+  background: #fff;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.hamburger-btn.active span:nth-child(1) {
+  transform: translateY(10.5px) rotate(45deg);
+}
+
+.hamburger-btn.active span:nth-child(2) {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.hamburger-btn.active span:nth-child(3) {
+  transform: translateY(-10.5px) rotate(-45deg);
+}
+
+/* Barra de navegación */
 .navigation-section {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 1rem;
 }
 
 .nav-links {
@@ -419,6 +536,7 @@ onBeforeUnmount(() => {
   font-size: 0.95rem;
 }
 
+/* Login Buttons */
 .login-btn {
   background: linear-gradient(45deg, #da9c5f, #b8791f);
   color: white;
@@ -428,6 +546,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .login-btn:hover {
@@ -435,7 +554,15 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 12px rgba(218, 156, 95, 0.3);
 }
 
-/* Dropdown actualizado */
+.mobile-login-btn {
+  display: none;
+}
+
+.desktop-login-btn {
+  display: block;
+}
+
+/* User Profile */
 .user-profile {
   display: flex;
   align-items: center;
@@ -642,7 +769,7 @@ onBeforeUnmount(() => {
   transform: translateY(-5px);
 }
 
-/* Responsive */
+/* Responsive Tablets */
 @media (max-width: 1024px) {
   .nav-text {
     display: none;
@@ -651,48 +778,104 @@ onBeforeUnmount(() => {
   .nav-link {
     padding: 0.75rem;
   }
-}
-
-@media (max-width: 768px) {
-  .property-header {
-    padding: 1rem;
-  }
-
-  .nav-links {
-    gap: 1rem;
-  }
-
-  .nav-link {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
-  }
-
-  .logo-text {
-    font-size: 1.2rem;
-  }
 
   .user-details {
     display: none;
+  }
+}
+
+/* Responsive Mobile */
+@media (max-width: 768px) {
+  .property-header {
+    padding: 1rem 1.5rem;
+  }
+
+  /* Mostrar hamburger */
+  .hamburger-btn {
+    display: flex;
+  }
+
+  /* Ocultar botón login desktop */
+  .desktop-login-btn {
+    display: none;
+  }
+
+  /* Menú de navegación móvil */
+  .navigation-section {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #3b251d 0%, #2e1d17 100%);
+    flex-direction: column;
+    padding: 1rem;
+    transform: translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+  }
+
+  .navigation-section.mobile-active {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    width: 100%;
+    background: transparent;
+    padding: 0;
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 1rem 1.5rem;
+  }
+
+  .nav-text {
+    display: block;
+  }
+
+  .nav-icon {
+    width: 24px;
+    text-align: center;
+  }
+
+  /* Mostrar botón login en móvil */
+  .mobile-login-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .logo img {
+    height: 36px;
+  }
+
+  .logo-text {
+    font-size: 1.3rem;
   }
 
   .user-dropdown-menu {
     min-width: 260px;
     right: -0.5rem;
   }
+
+  .user-profile {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .navigation-section {
-    display: none;
-  }
-  
-  .nav-links {
-    gap: 0.5rem;
-  }
-
-  .nav-link {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.8rem;
+  .property-header {
+    padding: 1rem;
   }
 
   .logo img {
@@ -700,12 +883,50 @@ onBeforeUnmount(() => {
   }
 
   .logo-text {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
-  
+
+  .logo-text strong,
+  .logo-text span {
+    font-size: 1.1rem;
+  }
+
   .user-dropdown-menu {
-    min-width: 240px;
+    min-width: calc(100vw - 2rem);
     right: -1rem;
+    left: 1rem;
   }
+
+  .avatar-img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .dropdown-header {
+    padding: 1rem;
+  }
+
+  .dropdown-avatar img {
+    width: 45px;
+    height: 45px;
+  }
+
+  .dropdown-item {
+    padding: 0.875rem 1rem;
+  }
+
+  .hamburger-btn {
+    width: 26px;
+    height: 20px;
+  }
+
+  .hamburger-btn span {
+    height: 2.5px;
+  }
+}
+
+/* Prevenir scroll cuando el menú móvil está abierto */
+body.mobile-menu-open {
+  overflow: hidden;
 }
 </style>
